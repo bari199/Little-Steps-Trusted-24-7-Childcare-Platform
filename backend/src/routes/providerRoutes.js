@@ -1,7 +1,7 @@
 import express from "express";
 
 import authMiddleware from "../middleware/authMiddleware.js";
-
+import roleMiddleware from "../middleware/roleMiddleware.js";
 import {
   createProviderProfile,
   getProviderProfile,
@@ -10,10 +10,25 @@ import {
 
 const router = express.Router();
 
-router.post("/profile", authMiddleware, createProviderProfile);
+router.post(
+  "/profile",
+  authMiddleware,
+  roleMiddleware("provider"),
+  createProviderProfile,
+);
 
-router.get("/profile", authMiddleware, getProviderProfile);
+router.get(
+  "/profile",
+  authMiddleware,
+  roleMiddleware("provider"),
+  getProviderProfile,
+);
 
-router.put("/profile", authMiddleware, updateProviderProfile);
+router.put(
+  "/profile",
+  authMiddleware,
+  roleMiddleware("provider"),
+  updateProviderProfile,
+);
 
 export default router;
