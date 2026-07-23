@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes.js";
 import providerRoutes from "./routes/providerRoutes.js";
+import centerRoutes from "./routes/centerRoutes.js";
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/providers", providerRoutes);
+app.use("/api/centers", centerRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
