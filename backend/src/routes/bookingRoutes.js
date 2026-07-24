@@ -3,6 +3,9 @@ import express from "express";
 import {
   createBooking,
   getMyBookings,
+  getProviderBookings,
+  approveBooking,
+  rejectBooking,
 } from "../controllers/bookingController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -17,6 +20,27 @@ router.get(
   authMiddleware,
   roleMiddleware("parent"),
   getMyBookings,
+);
+
+router.get(
+  "/provider",
+  authMiddleware,
+  roleMiddleware("provider"),
+  getProviderBookings,
+);
+
+router.patch(
+  "/approve/:id",
+  authMiddleware,
+  roleMiddleware("provider"),
+  approveBooking,
+);
+
+router.patch(
+  "/reject/:id",
+  authMiddleware,
+  roleMiddleware("provider"),
+  rejectBooking,
 );
 
 export default router;

@@ -1,5 +1,6 @@
 import Booking from "../models/Booking.js";
 import Center from "../models/Center.js";
+import Provider from "../models/Provider.js";
 
 const createBooking = async (req, res) => {
   try {
@@ -82,5 +83,106 @@ const getMyBookings = async (req, res) => {
     });
   }
 };
+const getProviderBookings = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
 
-export { createBooking, getMyBookings };
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const bookings = await Booking.find({
+      center: center._id,
+    })
+      .populate("parent", "name email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: bookings.length,
+      bookings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+const approveBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    booking.status = "Approved";
+
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Booking approved successfully",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+const rejectBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    booking.status = "Rejected";
+
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Booking rejected successfully",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export {
+  createBooking,
+  getMyBookings,
+  getProviderBookings,
+  approveBooking,
+  rejectBooking,
+};
