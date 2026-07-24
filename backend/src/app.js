@@ -5,6 +5,7 @@ import authRoutes from "./routes/authRoutes.js";
 import providerRoutes from "./routes/providerRoutes.js";
 import centerRoutes from "./routes/centerRoutes.js";
 import caregiverRoutes from "./routes/caregiverRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/providers", providerRoutes);
 app.use("/api/centers", centerRoutes);
 app.use("/api/caregivers", caregiverRoutes);
+app.use("/api/bookings", bookingRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
