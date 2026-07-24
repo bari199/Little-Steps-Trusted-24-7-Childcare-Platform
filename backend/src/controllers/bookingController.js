@@ -127,7 +127,32 @@ const getProviderBookings = async (req, res) => {
 };
 const approveBooking = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const booking = await Booking.findOne({
+      _id: req.params.id,
+      center: center._id,
+    });
 
     if (!booking) {
       return res.status(404).json({
@@ -154,7 +179,32 @@ const approveBooking = async (req, res) => {
 };
 const rejectBooking = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const booking = await Booking.findOne({
+      _id: req.params.id,
+      center: center._id,
+    });
 
     if (!booking) {
       return res.status(404).json({
