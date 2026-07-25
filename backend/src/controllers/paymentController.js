@@ -35,7 +35,6 @@ const createOrder = async (req, res) => {
     const payment = await Payment.create({
       parent: req.user._id,
       booking: bookingId || null,
-      subscription: subscriptionId || null,
       subscriptionData: planType
         ? {
             center,
