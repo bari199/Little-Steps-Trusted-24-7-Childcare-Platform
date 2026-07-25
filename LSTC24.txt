@@ -1,0 +1,1075 @@
+Ami tokey zip file na diya puro txt (text ) tai dilam jatey tomar easy hoi . Ekta bishoi eai khaney jei jei file
+er code dieni ba likhini oigulo ekhono create hoini ok .
+
+
+
+
+backend-/
+	src-/
+	    config-/
+		cloudinary.js
+		db.js
+	    controllers-/
+		adminController.js
+		authController.js
+		bookingController.js
+		centerController.js
+		caregiverController.js
+		providerController.js
+	    middleware-/
+		adminMiddleware.js
+		authMiddleware.js
+		errorMiddleware.js
+		roleMiddleware.js
+	        uploadMiddleware.js
+	    models-/
+		Booking.js
+		Caregiver.js
+		Center.js
+		Provider.js
+		Substcriptions.js
+		User.js
+	    routes-/
+		adminRoute.js
+		authRoutes.js
+		bookingRoutes.js
+		caregiverRoutes.js
+		centerRoutes.js
+		providerRoutes.js
+		subscriptionRoutes.js
+	    utils-/
+		cloudinaryUpload.js
+		generateSlug.js
+		generateToken.js
+	    validations-/
+	    app.js
+	    server.js
+	    .env
+	    .env.example
+	    .gitignore
+	     nodemon.json
+	     README.md
+
+
+//---------Source Codes ------------------//
+
+config-/
+		cloudinary.js
+	
+                   [empty]
+config-/
+		db.js-/
+
+import mongoose from "mongoose";
+
+const connectDB = async () => {
+  try {
+    await mongoose.connect(`${process.env.MONGODB_URI}/Childcare-Platfrom`);
+
+    console.log("MongoDB Connected");
+  } catch (error) {
+    console.error("MongoDB Connection Failed");
+    console.error(error.message);
+
+    process.exit(1);
+  }
+};
+
+export default connectDB;
+
+##------------------------------------------------------
+controllers-/
+		authController.js-/
+
+import bcrypt from "bcryptjs";
+import User from "../models/User.js";
+import generateToken from "../utils/generateToken.js";
+
+const register = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    // Required Fields
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    // Password Length
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    // Check Existing User
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
+    // Hash Password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create User
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Registration Successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and Password are required",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    const isPasswordMatched = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordMatched) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    const token = generateToken(user._id, user.role);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Login Successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const logout = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Logout Successful",
+  });
+};
+
+const getCurrentUser = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    user: req.user,
+  });
+};
+
+export { register, login, logout, getCurrentUser };
+
+
+controllers-/
+	     centerController.js-/
+
+import Center from "../models/Center.js";
+import Provider from "../models/Provider.js";
+import generateSlug from "../utils/generateSlug.js";
+
+const createCenter = async (req, res) => {
+  try {
+    const {
+      centerName,
+      description,
+      address,
+      city,
+      state,
+      pincode,
+      ageGroup,
+      capacity,
+      monthlyFee,
+      openingTime,
+      closingTime,
+      is24Hours,
+      facilities,
+    } = req.body;
+
+    if (
+      !centerName ||
+      !description ||
+      !address ||
+      !city ||
+      !state ||
+      !pincode ||
+      !ageGroup ||
+      !capacity ||
+      !monthlyFee ||
+      !openingTime ||
+      !closingTime
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    const existingCenter = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (existingCenter) {
+      return res.status(409).json({
+        success: false,
+        message: "Center already exists",
+      });
+    }
+
+    const slug = generateSlug(centerName);
+
+    const center = await Center.create({
+      provider: provider._id,
+      centerName,
+      slug,
+      description,
+      address,
+      city,
+      state,
+      pincode,
+      ageGroup,
+      capacity,
+      monthlyFee,
+      openingTime,
+      closingTime,
+      is24Hours,
+      facilities,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Center created successfully",
+      center,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getCenters = async (req, res) => {
+  try {
+    const { city, ageGroup, is24Hours } = req.query;
+
+    const filter = {};
+
+    if (city) filter.city = city;
+
+    if (ageGroup) filter.ageGroup = ageGroup;
+
+    if (is24Hours !== undefined) {
+      filter.is24Hours = is24Hours === "true";
+    }
+
+    const centers = await Center.find(filter)
+      .populate({
+        path: "provider",
+        populate: {
+          path: "user",
+          select: "name email",
+        },
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: centers.length,
+      centers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getSingleCenter = async (req, res) => {
+  try {
+    const center = await Center.findOne({
+      slug: req.params.slug,
+    }).populate({
+      path: "provider",
+      populate: {
+        path: "user",
+        select: "name email",
+      },
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      center,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const updateCenter = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    const center = await Center.findOne({
+      _id: req.params.id,
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    if (req.body.centerName) {
+      req.body.slug = generateSlug(req.body.centerName);
+    }
+
+    const updatedCenter = await Center.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Center updated successfully",
+      center: updatedCenter,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const deleteCenter = async (req, res) => {
+  try {
+    const center = await Center.findById(req.params.id);
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    await center.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Center deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export {
+  createCenter,
+  getCenters,
+  getSingleCenter,
+  updateCenter,
+  deleteCenter,
+};
+
+controllers-/
+	ProviderController-/
+import Provider from "../models/Provider.js";
+
+const createProviderProfile = async (req, res) => {
+  try {
+    const { phone, address, qualification, experience } = req.body;
+
+    if (!phone || !address || !qualification || !experience) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const existingProvider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (existingProvider) {
+      return res.status(409).json({
+        success: false,
+        message: "Provider profile already exists",
+      });
+    }
+
+    const provider = await Provider.create({
+      user: req.user._id,
+      phone,
+      address,
+      qualification,
+      experience,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Provider profile created successfully",
+      provider,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getProviderProfile = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    }).populate("user", "-password");
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      provider,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const updateProviderProfile = async (req, res) => {
+  try {
+    const provider = await Provider.findOneAndUpdate(
+      { user: req.user._id },
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Provider profile updated successfully",
+      provider,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export { createProviderProfile, getProviderProfile, updateProviderProfile };
+
+##--------------------------------------------------
+middleware-/
+	   authMiddleware.js
+
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+
+const authMiddleware = async (req, res, next) => {
+  try {
+    const token = req.cookies.token;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    req.user = user;
+
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid Token",
+    });
+  }
+};
+
+export default authMiddleware;
+
+
+middleware-/
+	   roleMiddleware.js
+
+const roleMiddleware = (...roles) => {
+  return (req, res, next) => {
+    console.log("User Role:", req.user.role);
+    console.log("Allowed Roles:", roles);
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access Denied",
+      });
+    }
+
+    next();
+  };
+};
+
+export default roleMiddleware;
+###--------------------------------------------------
+
+models -/
+	Center.js
+
+
+import mongoose from "mongoose";
+
+const centerSchema = new mongoose.Schema(
+  {
+    provider: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Provider",
+      required: true,
+      unique: true,
+    },
+
+    centerName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    address: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    city: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    state: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    pincode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    ageGroup: {
+      type: String,
+      required: true,
+      enum: ["0-2 Years", "2-5 Years", "5+ Years"],
+    },
+
+    capacity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    monthlyFee: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    openingTime: {
+      type: String,
+      required: true,
+    },
+
+    closingTime: {
+      type: String,
+      required: true,
+    },
+
+    is24Hours: {
+      type: Boolean,
+      default: false,
+    },
+
+    facilities: {
+      type: [String],
+      default: [],
+    },
+
+    centerImages: {
+      type: [String],
+      default: [],
+    },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export default mongoose.model("Center", centerSchema);
+
+
+
+models-/
+	Provider.js
+
+import mongoose from "mongoose";
+
+const providerSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
+
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    address: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    qualification: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    experience: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    governmentId: {
+      type: String,
+      default: "",
+    },
+
+    profileImage: {
+      type: String,
+      default: "",
+    },
+
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+const Provider = mongoose.model("Provider", providerSchema);
+
+export default Provider;
+
+models-/
+	User.js
+
+
+import mongoose from "mongoose";
+import validator from "validator";
+
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+    },
+
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      validate: [validator.isEmail, "Please enter a valid email"],
+    },
+
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: 8,
+    },
+
+    role: {
+      type: String,
+      enum: ["parent", "provider", "admin"],
+      default: "parent",
+    },
+
+    isApproved: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+const User = mongoose.model("User", userSchema);
+
+export default User;
+##-------------------------------------------------
+
+routes-/
+	authRoutes.js
+
+import express from "express";
+
+import {
+  register,
+  login,
+  logout,
+  getCurrentUser,
+} from "../controllers/authController.js";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+router.post("/register", register);
+
+router.post("/login", login);
+
+router.post("/logout", logout);
+
+router.get("/me", authMiddleware, getCurrentUser);
+
+export default router;
+
+
+routes-/
+	centerRouter.js
+
+import express from "express";
+
+import {
+  createCenter,
+  getCenters,
+  getSingleCenter,
+  updateCenter,
+  deleteCenter,
+} from "../controllers/centerController.js";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+
+const router = express.Router();
+
+/* Public */
+router.get("/", getCenters);
+router.get("/slug/:slug", getSingleCenter);
+
+/* Provider */
+router.post("/", authMiddleware, roleMiddleware("provider"), createCenter);
+
+router.put("/:id", authMiddleware, roleMiddleware("provider"), updateCenter);
+
+/* Admin */
+router.delete("/:id", authMiddleware, roleMiddleware("admin"), deleteCenter);
+
+export default router;
+
+routes-/
+	providerRoutes.js =>
+
+import express from "express";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+import {
+  createProviderProfile,
+  getProviderProfile,
+  updateProviderProfile,
+} from "../controllers/providerController.js";
+
+const router = express.Router();
+
+router.post(
+  "/profile",
+  authMiddleware,
+  roleMiddleware("provider"),
+  createProviderProfile,
+);
+
+router.get(
+  "/profile",
+  authMiddleware,
+  roleMiddleware("provider"),
+  getProviderProfile,
+);
+
+router.put(
+  "/profile",
+  authMiddleware,
+  roleMiddleware("provider"),
+  updateProviderProfile,
+);
+
+export default router;
+
+utils-/
+	generateSlug.js =>
+		
+const generateSlug = (text) => {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "");
+};
+
+export default generateSlug;
+
+utils-/
+	generateToken.js =>
+
+import jwt from "jsonwebtoken";
+
+const generateToken = (userId, role) => {
+  return jwt.sign(
+    {
+      id: userId,
+      role,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "7d",
+    },
+  );
+};
+
+export default generateToken;
+
+
+app.js  =>
+
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import authRoutes from "./routes/authRoutes.js";
+import providerRoutes from "./routes/providerRoutes.js";
+import centerRoutes from "./routes/centerRoutes.js";
+
+const app = express();
+
+app.use(
+  cors({
+    origin: [process.env.CLIENT_URL, process.env.ADMIN_URL],
+    credentials: true,
+  }),
+);
+
+app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
+
+app.use(cookieParser());
+
+app.use("/api/auth", authRoutes);
+app.use("/api/providers", providerRoutes);
+app.use("/api/centers", centerRoutes);
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Little Steps Backend Running",
+  });
+});
+
+export default app;
+
+
+server.js =>
+
+
+import dotenv from "dotenv";
+
+dotenv.config();
+
+import app from "./app.js";
+import connectDB from "./config/db.js";
+
+const PORT = process.env.PORT || 8000;
+
+connectDB();
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+.env=>
+
+PORT=8xxx
+
+MONGODB_URI=xxxxxxxxxxxxxx
+
+JWT_SECRET=xxxxxxxxxxxxxxxx
+
+CLOUDINARY_CLOUD_NAME=xxxxxxxxxxxx
+
+CLOUDINARY_API_KEY=xxxxxxxxxxxx
+
+CLOUDINARY_API_SECRET=xxxxxxxxxxx
+
+CLIENT_URL=http://localhost:5173
+
+ADMIN_URL=http://localhost:5174
+
+nodemon.json=>
+
+{
+  "watch": ["src"],
+  "ext": "js,json",
+  "ignore": ["node_modules"],
+  "exec": "node src/server.js"
+}
