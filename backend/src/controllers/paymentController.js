@@ -142,4 +142,67 @@ const verifyPayment = async (req, res) => {
   }
 };
 
-export { createOrder, verifyPayment };
+const getMyPayments = async (req, res) => {
+  try {
+    const payments = await Payment.find({
+      parent: req.user._id,
+    })
+      .populate("booking")
+      .populate("subscription")
+      .sort({
+        createdAt: -1,
+      });
+
+    res.status(200).json({
+      success: true,
+
+      total: payments.length,
+
+      payments,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getPaymentDetails = async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.id)
+      .populate("booking")
+      .populate("subscription");
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+
+        message: "Payment not found",
+      });
+    }
+
+    if (payment.parent.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+
+        message: "Unauthorized access",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+
+      payment,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+export { createOrder, verifyPayment, getMyPayments, getPaymentDetails };

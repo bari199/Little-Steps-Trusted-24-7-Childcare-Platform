@@ -47,7 +47,7 @@ const paymentSchema = new mongoose.Schema(
     },
 
     subscriptionData: {
-      type: Object,
+      type: mongoose.Schema.Types.Mixed,
       default: null,
     },
 
