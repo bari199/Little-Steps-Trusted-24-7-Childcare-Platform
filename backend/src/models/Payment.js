@@ -45,6 +45,25 @@ const paymentSchema = new mongoose.Schema(
       enum: ["Pending", "Success", "Failed"],
       default: "Pending",
     },
+
+    subscriptionData: {
+      type: Object,
+      default: null,
+    },
+
+    razorpaySignature: {
+      type: String,
+      default: "",
+    },
+
+    paymentMethod: {
+      type: String,
+      default: "Razorpay",
+    },
+
+    paidAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

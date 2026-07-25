@@ -7,6 +7,7 @@ import centerRoutes from "./routes/centerRoutes.js";
 import caregiverRoutes from "./routes/caregiverRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use("/api/providers", providerRoutes);
 app.use("/api/centers", centerRoutes);
 app.use("/api/caregivers", caregiverRoutes);
 app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 
 app.get("/", (req, res) => {
