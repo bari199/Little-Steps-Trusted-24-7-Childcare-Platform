@@ -87,6 +87,11 @@ const centerSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
     slug: {
       type: String,
       required: true,

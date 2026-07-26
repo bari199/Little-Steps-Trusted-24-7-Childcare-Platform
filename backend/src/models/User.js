@@ -30,6 +30,12 @@ const userSchema = new mongoose.Schema(
       default: "parent",
     },
 
+    status: {
+      type: String,
+      enum: ["active", "blocked"],
+      default: "active",
+    },
+
     isApproved: {
       type: Boolean,
       default: true,

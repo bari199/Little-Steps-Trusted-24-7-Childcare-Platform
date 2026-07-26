@@ -17,10 +17,10 @@ const createOrder = async (req, res) => {
       });
     }
 
-    if (!bookingId && !subscriptionId) {
+    if (!bookingId && !planType) {
       return res.status(400).json({
         success: false,
-        message: "Booking or Subscription is required",
+        message: "Booking or Subscription details are required",
       });
     }
 
@@ -111,7 +111,7 @@ const verifyPayment = async (req, res) => {
     }
 
     if (payment.subscriptionData) {
-      await Subscription.create({
+      const subscription = await Subscription.create({
         parent: payment.parent,
 
         center: payment.subscriptionData.center,
@@ -126,6 +126,12 @@ const verifyPayment = async (req, res) => {
 
         status: "Active",
       });
+
+      payment.subscription = subscription._id;
+
+      payment.subscriptionData = null;
+
+      await payment.save();
     }
 
     res.status(200).json({

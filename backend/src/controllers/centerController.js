@@ -4,6 +4,23 @@ import generateSlug from "../utils/generateSlug.js";
 
 const createCenter = async (req, res) => {
   try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    if (provider.verificationStatus !== "approved") {
+      return res.status(403).json({
+        success: false,
+        message: "Provider account is not approved yet.",
+      });
+    }
     const {
       centerName,
       description,
@@ -36,17 +53,6 @@ const createCenter = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
-      });
-    }
-
-    const provider = await Provider.findOne({
-      user: req.user._id,
-    });
-
-    if (!provider) {
-      return res.status(404).json({
-        success: false,
-        message: "Provider profile not found",
       });
     }
 

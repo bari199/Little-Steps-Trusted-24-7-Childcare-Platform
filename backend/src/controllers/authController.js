@@ -90,6 +90,14 @@ const login = async (req, res) => {
       });
     }
 
+    if (user.status === "blocked") {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Your account has been blocked. Please contact the administrator.",
+      });
+    }
+
     const token = generateToken(user._id, user.role);
 
     res.cookie("token", token, {

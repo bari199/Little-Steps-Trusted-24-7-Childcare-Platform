@@ -9,6 +9,8 @@ import bookingRoutes from "./routes/bookingRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
+import adminRoutes from "./routes/adminRoutes.js";
+
 const app = express();
 
 app.use(
@@ -31,6 +33,7 @@ app.use("/api/caregivers", caregiverRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
