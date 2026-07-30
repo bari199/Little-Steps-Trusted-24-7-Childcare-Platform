@@ -47,8 +47,16 @@ const paymentSchema = new mongoose.Schema(
     },
 
     subscriptionData: {
-      type: mongoose.Schema.Types.Mixed,
-      default: null,
+      center: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Center",
+      },
+
+      planType: String,
+
+      startDate: Date,
+
+      endDate: Date,
     },
 
     razorpaySignature: {

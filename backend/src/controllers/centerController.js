@@ -1,7 +1,7 @@
 import Center from "../models/Center.js";
 import Provider from "../models/Provider.js";
 import generateSlug from "../utils/generateSlug.js";
-
+import cloudinary from "../config/cloudinary.js";
 const createCenter = async (req, res) => {
   try {
     const provider = await Provider.findOne({
@@ -21,6 +21,7 @@ const createCenter = async (req, res) => {
         message: "Provider account is not approved yet.",
       });
     }
+
     const {
       centerName,
       description,
@@ -35,6 +36,10 @@ const createCenter = async (req, res) => {
       closingTime,
       is24Hours,
       facilities,
+      latitude,
+      longitude,
+      isFeatured,
+      status,
     } = req.body;
 
     if (
@@ -69,6 +74,12 @@ const createCenter = async (req, res) => {
 
     const slug = generateSlug(centerName);
 
+    const centerImages =
+      req.files?.map((file) => ({
+        url: file.path,
+        public_id: file.filename,
+      })) || [];
+
     const center = await Center.create({
       provider: provider._id,
       centerName,
@@ -84,7 +95,18 @@ const createCenter = async (req, res) => {
       openingTime,
       closingTime,
       is24Hours,
-      facilities,
+      facilities: facilities
+        ? Array.isArray(facilities)
+          ? facilities
+          : JSON.parse(facilities)
+        : [],
+      location: {
+        latitude: latitude || null,
+        longitude: longitude || null,
+      },
+      isFeatured: isFeatured === "true" || isFeatured === true,
+      status: status || "active",
+      centerImages,
     });
 
     res.status(201).json({
@@ -107,7 +129,6 @@ const getCenters = async (req, res) => {
     const filter = {};
 
     if (city) filter.city = city;
-
     if (ageGroup) filter.ageGroup = ageGroup;
 
     if (is24Hours !== undefined) {
@@ -174,6 +195,13 @@ const updateCenter = async (req, res) => {
       user: req.user._id,
     });
 
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
     const center = await Center.findOne({
       _id: req.params.id,
       provider: provider._id,
@@ -188,6 +216,40 @@ const updateCenter = async (req, res) => {
 
     if (req.body.centerName) {
       req.body.slug = generateSlug(req.body.centerName);
+    }
+
+    if (req.body.facilities) {
+      req.body.facilities = Array.isArray(req.body.facilities)
+        ? req.body.facilities
+        : JSON.parse(req.body.facilities);
+    }
+
+    if (req.body.latitude !== undefined || req.body.longitude !== undefined) {
+      req.body.location = {
+        latitude: req.body.latitude ?? center.location?.latitude ?? null,
+        longitude: req.body.longitude ?? center.location?.longitude ?? null,
+      };
+
+      delete req.body.latitude;
+      delete req.body.longitude;
+    }
+
+    if (req.body.isFeatured !== undefined) {
+      req.body.isFeatured =
+        req.body.isFeatured === "true" || req.body.isFeatured === true;
+    }
+
+    if (req.files?.length) {
+      // Delete old images
+      for (const image of center.centerImages) {
+        await cloudinary.uploader.destroy(image.public_id);
+      }
+
+      // Save new images
+      req.body.centerImages = req.files.map((file) => ({
+        url: file.path,
+        public_id: file.filename,
+      }));
     }
 
     const updatedCenter = await Center.findByIdAndUpdate(

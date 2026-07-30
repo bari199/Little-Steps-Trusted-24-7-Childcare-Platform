@@ -4,6 +4,8 @@ import {
   createBooking,
   getMyBookings,
   getProviderBookings,
+  getBookingDetails,
+  cancelBooking,
   approveBooking,
   rejectBooking,
 } from "../controllers/bookingController.js";
@@ -20,6 +22,15 @@ router.get(
   authMiddleware,
   roleMiddleware("parent"),
   getMyBookings,
+);
+
+router.get("/:id", authMiddleware, getBookingDetails);
+
+router.patch(
+  "/cancel/:id",
+  authMiddleware,
+  roleMiddleware("parent"),
+  cancelBooking,
 );
 
 router.get(

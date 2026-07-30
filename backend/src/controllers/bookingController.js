@@ -63,6 +63,97 @@ const createBooking = async (req, res) => {
     });
   }
 };
+
+const getBookingDetails = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate("center", "centerName city centerImages monthlyFee address")
+      .populate("parent", "name email");
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    // Parent or Provider are only see. apartform rest are not see.
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    let isProvider = false;
+
+    if (provider) {
+      const center = await Center.findOne({
+        provider: provider._id,
+      });
+
+      if (center && center._id.toString() === booking.center._id.toString()) {
+        isProvider = true;
+      }
+    }
+
+    if (
+      booking.parent._id.toString() !== req.user._id.toString() &&
+      !isProvider
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const cancelBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findOne({
+      _id: req.params.id,
+      parent: req.user._id,
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    if (booking.status !== "Pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending bookings can be cancelled",
+      });
+    }
+
+    booking.status = "Cancelled";
+
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Booking cancelled successfully",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 const getMyBookings = async (req, res) => {
   try {
     const bookings = await Booking.find({
@@ -232,6 +323,8 @@ const rejectBooking = async (req, res) => {
 export {
   createBooking,
   getMyBookings,
+  getBookingDetails,
+  cancelBooking,
   getProviderBookings,
   approveBooking,
   rejectBooking,

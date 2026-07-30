@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { v2 as cloudinary } from "cloudinary";
 
 const caregiverSchema = new mongoose.Schema(
   {
@@ -33,8 +34,14 @@ const caregiverSchema = new mongoose.Schema(
     },
 
     profileImage: {
-      type: String,
-      default: "",
+      url: {
+        type: String,
+        default: "",
+      },
+      public_id: {
+        type: String,
+        default: "",
+      },
     },
 
     isAvailable: {
@@ -44,6 +51,23 @@ const caregiverSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+  },
+);
+
+// Delete Cloudinary image before deleting caregiver
+caregiverSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function (next) {
+    try {
+      if (this.profileImage?.public_id) {
+        await cloudinary.uploader.destroy(this.profileImage.public_id);
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
   },
 );
 

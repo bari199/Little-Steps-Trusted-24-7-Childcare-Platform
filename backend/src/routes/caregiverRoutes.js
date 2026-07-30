@@ -4,6 +4,7 @@ import {
   createCaregiver,
   getCaregivers,
   getSingleCaregiver,
+  getProviderCaregivers,
   updateCaregiver,
   deleteCaregiver,
 } from "../controllers/caregiverController.js";
@@ -13,9 +14,16 @@ import roleMiddleware from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
+// Public Routes
 router.get("/", getCaregivers);
 
-router.get("/:id", getSingleCaregiver);
+// Provider Routes
+router.get(
+  "/provider",
+  authMiddleware,
+  roleMiddleware("provider"),
+  getProviderCaregivers,
+);
 
 router.post("/", authMiddleware, roleMiddleware("provider"), createCaregiver);
 
@@ -27,5 +35,8 @@ router.delete(
   roleMiddleware("provider"),
   deleteCaregiver,
 );
+
+// Dynamic Route (keep last)
+router.get("/:id", getSingleCaregiver);
 
 export default router;
