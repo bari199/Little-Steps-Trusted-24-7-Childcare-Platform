@@ -1,0 +1,12 @@
+so etta holo backend structure . amer rerquirments gulo holo .
+1)Folder frontend er khub boro structure hby na , ak bar jei folder structure lock korbo ottai onujai next korety hby , notun korey korley hby na ettey consistency break hby .
+2)Tech stack holo Shadcdn/Ui , tailwind css, React vite .
+3)Folder optimaized khub hby na choto hby , naholey foggy o guliya jawar chance beshi .
+4)context, hook , service eai are .env file frontend ye used hby .Extra util , lib eaisob kichu used hbyna .
+5)Joto com folders hby toto beshi bhalo .
+6)Jeiguli maney code gulo korbey sei guli mony rakh tey hby folder structure somet , codes , etc . Jodi kono karon ye pc off hoye jai toh tar sottey oh money rakhtey hby .
+7)Consistency braek korley hby na , backend alraedy testing kora . extra layer extra ordinary extra smart ness folder added kora jabey na deadline 2 din por .
+8)Joto tuku backend ye achey only for toto tukui korbey ,are frontend khub beshi load na hoye jai seidikey nojor rakhbey .
+9)ekta ekta phase wise start korbey after that testing somet puro end kortey hby .
+10)End hoye geyley josi money hoi succesfully tested then git hub ye add , commit are push kortey hby .
+11)protom set hby A)Authentication , B)

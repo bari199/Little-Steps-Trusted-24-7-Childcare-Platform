@@ -1,0 +1,3893 @@
+backend-/
+	src-/
+	    config-/
+		   cloudinary.js
+		   db.js
+		   razorpay.js
+	    controllers-/
+		   adminController.js
+		   authController.js
+		   bookingController.js
+		   caregiverController.js
+		   centerController.js
+		   paymentController.js
+		   providerController.js
+		   subscriptionController.js
+    	     middleware-/
+		   authMiddleware.js
+		   roleMiddleware.js
+		   uploadMiddleware
+	     models-/
+		   Booking.js
+		   Caregiver.js
+		   Center.js
+		   Payment.js
+		   Provider.js
+		   Subscription.js
+		   User.js
+	     routes-/
+		   adminRoutes.js
+		   authRoutes.js
+		   bookingRoutes.js
+		   caregiverRoutes.js
+		   centerRoutes.js
+		   paymentRoutes.js
+		   providerRoutes.js
+		   subscriptionsRoutes.js
+	     utils-/
+		   cloudinaryUpload.js
+		   generateSlug.js
+		   generateToken.js
+	     app.js
+	     server.js
+	   .env
+	   .env.example
+	   .gitignore
+	    nodemon.json
+	    package-lock.json
+	    package.json
+	    READEME.md
+
+// =========================Source codes============================//
+ cloudinary.js=>
+
+
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+export default cloudinary;
+-----------------------------------------------------------------------------------------
+db.js =>
+
+import mongoose from "mongoose";
+
+const connectDB = async () => {
+  try {
+    await mongoose.connect(`${process.env.MONGODB_URI}/Childcare-Platfrom`);
+
+    console.log("MongoDB Connected");
+  } catch (error) {
+    console.error("MongoDB Connection Failed");
+    console.error(error.message);
+
+    process.exit(1);
+  }
+};
+
+export default connectDB;
+--------------------------------------------------------------------------------
+razorpay.js =>
+
+import Razorpay from "razorpay";
+import "dotenv/config";
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+
+export default razorpay;
+--------------------------------------------------------------------------------
+controllers-/
+			adminController.js
+
+import User from "../models/User.js";
+import Provider from "../models/Provider.js";
+import Center from "../models/Center.js";
+import Caregiver from "../models/Caregiver.js";
+import Booking from "../models/Booking.js";
+import Subscription from "../models/Subscription.js";
+import Payment from "../models/Payment.js";
+
+const getDashboardStats = async (req, res) => {
+  try {
+    const [
+      totalParents,
+      totalProviders,
+      verifiedProviders,
+      pendingProviders,
+      totalCenters,
+      totalCaregivers,
+      totalBookings,
+      pendingBookings,
+      approvedBookings,
+      rejectedBookings,
+      totalSubscriptions,
+      totalPayments,
+      revenue,
+    ] = await Promise.all([
+      User.countDocuments({ role: "parent" }),
+
+      User.countDocuments({ role: "provider" }),
+
+      Provider.countDocuments({
+        verificationStatus: "Approved",
+      }),
+
+      Provider.countDocuments({
+        verificationStatus: "Pending",
+      }),
+
+      Center.countDocuments(),
+
+      Caregiver.countDocuments(),
+
+      Booking.countDocuments(),
+
+      Booking.countDocuments({
+        status: "Pending",
+      }),
+
+      Booking.countDocuments({
+        status: "Approved",
+      }),
+
+      Booking.countDocuments({
+        status: "Rejected",
+      }),
+
+      Subscription.countDocuments(),
+
+      Payment.countDocuments({
+        status: "Success",
+      }),
+
+      Payment.aggregate([
+        {
+          $match: {
+            status: "Success",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: {
+              $sum: "$amount",
+            },
+          },
+        },
+      ]),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalParents,
+        totalProviders,
+        verifiedProviders,
+        pendingProviders,
+        totalCenters,
+        totalCaregivers,
+        totalBookings,
+        pendingBookings,
+        approvedBookings,
+        rejectedBookings,
+        totalSubscriptions,
+        totalPayments,
+        revenue: revenue.length > 0 ? revenue[0].totalRevenue : 0,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password").sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: users.length,
+      users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getSingleUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const updateUserStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!["active", "blocked"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+
+        message: "Invalid status",
+      });
+    }
+
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+
+        message: "User not found",
+      });
+    }
+
+    user.status = status;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+
+      message: `User ${status} successfully`,
+
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getAllProviders = async (req, res) => {
+  try {
+    const providers = await Provider.find()
+      .populate("user", "name email role status")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: providers.length,
+      providers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getPendingProviders = async (req, res) => {
+  try {
+    const providers = await Provider.find({
+      verificationStatus: "pending",
+    }).populate("user", "name email role status");
+
+    res.status(200).json({
+      success: true,
+
+      total: providers.length,
+
+      providers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getSingleProvider = async (req, res) => {
+  try {
+    const provider = await Provider.findById(req.params.id).populate(
+      "user",
+      "name email",
+    );
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+
+        message: "Provider not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+
+      provider,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const approveProvider = async (req, res) => {
+  try {
+    const provider = await Provider.findById(req.params.id);
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+
+        message: "Provider not found",
+      });
+    }
+
+    provider.verificationStatus = "approved";
+
+    await provider.save();
+
+    res.status(200).json({
+      success: true,
+
+      message: "Provider approved successfully",
+
+      provider,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const rejectProvider = async (req, res) => {
+  try {
+    const provider = await Provider.findById(req.params.id);
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+
+        message: "Provider not found",
+      });
+    }
+
+    provider.verificationStatus = "rejected";
+
+    await provider.save();
+
+    res.status(200).json({
+      success: true,
+
+      message: "Provider rejected successfully",
+
+      provider,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getAllCenters = async (req, res) => {
+  try {
+    const centers = await Center.find()
+      .populate("provider", "businessName verificationStatus")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: centers.length,
+      centers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getSingleCenter = async (req, res) => {
+  try {
+    const center = await Center.findById(req.params.id).populate(
+      "provider",
+      "businessName verificationStatus",
+    );
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      center,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const updateCenterStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!["active", "inactive"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status",
+      });
+    }
+
+    const center = await Center.findById(req.params.id);
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    center.status = status;
+
+    await center.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Center status updated successfully",
+      center,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getAllBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find()
+      .populate("parent", "name email")
+      .populate("center", "centerName")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: bookings.length,
+      bookings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getSingleBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate("parent", "name email phone")
+      .populate("center", "centerName address");
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getBookingsByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+
+    // 👇 Ei jaygay validation add korbe
+    const allowedStatus = [
+      "Pending",
+      "Approved",
+      "Rejected",
+      "Completed",
+      "Cancelled",
+    ];
+
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid booking status",
+      });
+    }
+
+    const bookings = await Booking.find({
+      status,
+    })
+      .populate("parent", "name email")
+      .populate("center", "centerName");
+
+    res.status(200).json({
+      success: true,
+
+      total: bookings.length,
+
+      bookings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getBookingsByPaymentStatus = async (req, res) => {
+  try {
+    const { paymentStatus } = req.params;
+
+    // 👇 Ei jaygay validation add korbe
+    const allowedPaymentStatus = ["Pending", "Paid"];
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid booking status",
+      });
+    }
+
+    const bookings = await Booking.find({
+      paymentStatus,
+    })
+      .populate("parent", "name email")
+      .populate("center", "centerName");
+
+    res.status(200).json({
+      success: true,
+
+      total: bookings.length,
+
+      bookings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getAllSubscriptions = async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find()
+      .populate("parent", "name email")
+      .populate("center", "centerName")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: subscriptions.length,
+      subscriptions,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getSingleSubscription = async (req, res) => {
+  try {
+    const subscription = await Subscription.findById(req.params.id)
+      .populate("parent", "name email")
+      .populate("center", "centerName");
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Subscription not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      subscription,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getSubscriptionsByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+
+    const allowedStatus = ["Pending", "Active", "Expired", "Cancelled"];
+
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid subscription status",
+      });
+    }
+
+    const subscriptions = await Subscription.find({
+      status,
+    })
+      .populate("parent", "name email")
+      .populate("center", "centerName");
+
+    res.status(200).json({
+      success: true,
+
+      total: subscriptions.length,
+
+      subscriptions,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getAllPayments = async (req, res) => {
+  try {
+    const payments = await Payment.find()
+      .populate("parent", "name email")
+      .populate("booking")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+
+      total: payments.length,
+
+      payments,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getSinglePayment = async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.id)
+      .populate("parent", "name email")
+      .populate("booking");
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+
+        message: "Payment not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+
+      payment,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getPaymentsByStatus = async (req, res) => {
+  try {
+    const { status } = req.params;
+
+    const allowedPaymentStatus = ["Pending", "Success", "Failed"];
+
+    if (!allowedPaymentStatus.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment status",
+      });
+    }
+
+    const payments = await Payment.find({
+      status,
+    }).populate("parent", "name email");
+
+    res.status(200).json({
+      success: true,
+
+      total: payments.length,
+
+      payments,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getOverviewReport = async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalProviders,
+      totalCenters,
+      totalCaregivers,
+      totalBookings,
+      totalSubscriptions,
+      totalPayments,
+    ] = await Promise.all([
+      User.countDocuments(),
+      Provider.countDocuments(),
+      Center.countDocuments(),
+      Caregiver.countDocuments(),
+      Booking.countDocuments(),
+      Subscription.countDocuments(),
+      Payment.countDocuments(),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      overview: {
+        totalUsers,
+        totalProviders,
+        totalCenters,
+        totalCaregivers,
+        totalBookings,
+        totalSubscriptions,
+        totalPayments,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getRevenueReport = async (req, res) => {
+  try {
+    const payments = await Payment.find({
+      status: "Success",
+    });
+
+    const totalRevenue = payments.reduce(
+      (total, payment) => total + payment.amount,
+      0,
+    );
+
+    res.status(200).json({
+      success: true,
+
+      totalTransactions: payments.length,
+
+      totalRevenue,
+
+      currency: "INR",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getBookingReport = async (req, res) => {
+  try {
+    const pending = await Booking.countDocuments({
+      status: "Pending",
+    });
+
+    const approved = await Booking.countDocuments({
+      status: "Approved",
+    });
+
+    const rejected = await Booking.countDocuments({
+      status: "Rejected",
+    });
+
+    const completed = await Booking.countDocuments({
+      status: "Completed",
+    });
+
+    const cancelled = await Booking.countDocuments({
+      status: "Cancelled",
+    });
+
+    res.status(200).json({
+      success: true,
+
+      bookings: {
+        pending,
+        approved,
+        rejected,
+        completed,
+        cancelled,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getSubscriptionReport = async (req, res) => {
+  try {
+    const pending = await Subscription.countDocuments({
+      status: "Pending",
+    });
+
+    const active = await Subscription.countDocuments({
+      status: "Active",
+    });
+
+    const expired = await Subscription.countDocuments({
+      status: "Expired",
+    });
+
+    const cancelled = await Subscription.countDocuments({
+      status: "Cancelled",
+    });
+
+    res.status(200).json({
+      success: true,
+
+      subscriptions: {
+        pending,
+        active,
+        expired,
+        cancelled,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+export {
+  getDashboardStats,
+  getAllUsers,
+  getAllCenters,
+  getAllBookings,
+  getSingleBooking,
+  getBookingsByStatus,
+  getBookingsByPaymentStatus,
+  getSingleUser,
+  getSingleCenter,
+  updateCenterStatus,
+  updateUserStatus,
+  getAllProviders,
+  getPendingProviders,
+  getSingleProvider,
+  approveProvider,
+  rejectProvider,
+  getAllSubscriptions,
+  getSingleSubscription,
+  getSubscriptionsByStatus,
+  getAllPayments,
+  getSinglePayment,
+  getPaymentsByStatus,
+  getOverviewReport,
+  getRevenueReport,
+  getBookingReport,
+  getSubscriptionReport,
+};
+
+---------------------------------------------------------------------------------------
+authController.js=>
+
+import bcrypt from "bcryptjs";
+import User from "../models/User.js";
+import generateToken from "../utils/generateToken.js";
+
+const register = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    // Required Fields
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    // Password Length
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    // Check Existing User
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
+    // Hash Password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create User
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Registration Successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and Password are required",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    const isPasswordMatched = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordMatched) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    if (user.status === "blocked") {
+      return res.status(403).json({
+        success: false,
+        message:
+          "Your account has been blocked. Please contact the administrator.",
+      });
+    }
+
+    const token = generateToken(user._id, user.role);
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Login Successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const logout = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Logout Successful",
+  });
+};
+
+const getCurrentUser = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    user: req.user,
+  });
+};
+
+export { register, login, logout, getCurrentUser };
+----------------------------------------------------------------------------------
+bookingController => 
+import Booking from "../models/Booking.js";
+import Center from "../models/Center.js";
+import Provider from "../models/Provider.js";
+
+const createBooking = async (req, res) => {
+  try {
+    const {
+      center,
+      childName,
+      childAge,
+      bookingDate,
+      startTime,
+      endTime,
+      planType,
+      specialInstructions,
+    } = req.body;
+
+    if (
+      !center ||
+      !childName ||
+      childAge === undefined ||
+      !bookingDate ||
+      !startTime ||
+      !endTime ||
+      !planType
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All required fields are mandatory",
+      });
+    }
+
+    const centerExists = await Center.findById(center);
+
+    if (!centerExists) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const booking = await Booking.create({
+      parent: req.user._id,
+      center,
+      childName,
+      childAge,
+      bookingDate,
+      startTime,
+      endTime,
+      planType,
+      specialInstructions,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Booking request submitted successfully",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getBookingDetails = async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate("center", "centerName city centerImages monthlyFee address")
+      .populate("parent", "name email");
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    // Parent or Provider are only see. apartform rest are not see.
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    let isProvider = false;
+
+    if (provider) {
+      const center = await Center.findOne({
+        provider: provider._id,
+      });
+
+      if (center && center._id.toString() === booking.center._id.toString()) {
+        isProvider = true;
+      }
+    }
+
+    if (
+      booking.parent._id.toString() !== req.user._id.toString() &&
+      !isProvider
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const cancelBooking = async (req, res) => {
+  try {
+    const booking = await Booking.findOne({
+      _id: req.params.id,
+      parent: req.user._id,
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    if (booking.status !== "Pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending bookings can be cancelled",
+      });
+    }
+
+    booking.status = "Cancelled";
+
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Booking cancelled successfully",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getMyBookings = async (req, res) => {
+  try {
+    const bookings = await Booking.find({
+      parent: req.user._id,
+    })
+      .populate("center", "centerName city")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: bookings.length,
+      bookings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+const getProviderBookings = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const bookings = await Booking.find({
+      center: center._id,
+    })
+      .populate("parent", "name email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: bookings.length,
+      bookings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+const approveBooking = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const booking = await Booking.findOne({
+      _id: req.params.id,
+      center: center._id,
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    booking.status = "Approved";
+
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Booking approved successfully",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+const rejectBooking = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const booking = await Booking.findOne({
+      _id: req.params.id,
+      center: center._id,
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    booking.status = "Rejected";
+
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Booking rejected successfully",
+      booking,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export {
+  createBooking,
+  getMyBookings,
+  getBookingDetails,
+  cancelBooking,
+  getProviderBookings,
+  approveBooking,
+  rejectBooking,
+};
+-------------------------------------------------------------------------------
+caregiverController=>
+
+import Caregiver from "../models/Caregiver.js";
+import Center from "../models/Center.js";
+import Provider from "../models/Provider.js";
+
+// ===============================
+// CREATE CAREGIVER (Provider)
+// ===============================
+const createCaregiver = async (req, res) => {
+  try {
+    const { fullName, qualification, experience, specialization } = req.body;
+
+    if (!fullName || !qualification || experience === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "All required fields are mandatory",
+      });
+    }
+
+    // Find provider profile
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    // Find provider center
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    // Image handling
+    let profileImage = {
+      url: "",
+      public_id: "",
+    };
+
+    if (req.file) {
+      profileImage = {
+        url: req.file.path,
+        public_id: req.file.filename,
+      };
+    }
+
+    const caregiver = await Caregiver.create({
+      center: center._id,
+      fullName,
+      qualification,
+      experience,
+      specialization,
+      profileImage,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Caregiver created successfully",
+      caregiver,
+    });
+  } catch (error) {
+    console.log("CREATE CAREGIVER ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===============================
+// GET ALL CAREGIVERS (Public)
+// ===============================
+const getCaregivers = async (req, res) => {
+  try {
+    const caregivers = await Caregiver.find()
+      .populate({
+        path: "center",
+        select: "centerName city",
+      })
+      .sort({
+        createdAt: -1,
+      });
+
+    res.status(200).json({
+      success: true,
+      total: caregivers.length,
+      caregivers,
+    });
+  } catch (error) {
+    console.log("GET CAREGIVERS ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===============================
+// GET PROVIDER CAREGIVERS
+// ===============================
+const getProviderCaregivers = async (req, res) => {
+  try {
+    console.log("AUTH USER:", req.user);
+
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    console.log("PROVIDER:", provider);
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    console.log("CENTER:", center);
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const caregivers = await Caregiver.find({
+      center: center._id,
+    });
+
+    res.status(200).json({
+      success: true,
+      caregivers,
+    });
+  } catch (error) {
+    console.log("PROVIDER CAREGIVER ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===============================
+// GET SINGLE CAREGIVER
+// ===============================
+const getSingleCaregiver = async (req, res) => {
+  try {
+    const caregiver = await Caregiver.findById(req.params.id).populate({
+      path: "center",
+      select: "centerName city",
+    });
+
+    if (!caregiver) {
+      return res.status(404).json({
+        success: false,
+        message: "Caregiver not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      caregiver,
+    });
+  } catch (error) {
+    console.log("GET SINGLE CAREGIVER ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===============================
+// UPDATE CAREGIVER
+// ===============================
+const updateCaregiver = async (req, res) => {
+  try {
+    const caregiver = await Caregiver.findById(req.params.id);
+
+    if (!caregiver) {
+      return res.status(404).json({
+        success: false,
+        message: "Caregiver not found",
+      });
+    }
+
+    const updatedData = {
+      ...req.body,
+    };
+
+    if (req.file) {
+      updatedData.profileImage = {
+        url: req.file.path,
+        public_id: req.file.filename,
+      };
+    }
+
+    const updatedCaregiver = await Caregiver.findByIdAndUpdate(
+      req.params.id,
+      updatedData,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Caregiver updated successfully",
+      caregiver: updatedCaregiver,
+    });
+  } catch (error) {
+    console.log("UPDATE CAREGIVER ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ===============================
+// DELETE CAREGIVER
+// ===============================
+const deleteCaregiver = async (req, res) => {
+  try {
+    const caregiver = await Caregiver.findById(req.params.id);
+
+    if (!caregiver) {
+      return res.status(404).json({
+        success: false,
+        message: "Caregiver not found",
+      });
+    }
+
+    await caregiver.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Caregiver deleted successfully",
+    });
+  } catch (error) {
+    console.log("DELETE CAREGIVER ERROR:", error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export {
+  createCaregiver,
+  getCaregivers,
+  getProviderCaregivers,
+  getSingleCaregiver,
+  updateCaregiver,
+  deleteCaregiver,
+};
+----------------------------------------------------------------------------------
+centerController =>
+
+import Center from "../models/Center.js";
+import Provider from "../models/Provider.js";
+import generateSlug from "../utils/generateSlug.js";
+import cloudinary from "../config/cloudinary.js";
+const createCenter = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    if (provider.verificationStatus !== "approved") {
+      return res.status(403).json({
+        success: false,
+        message: "Provider account is not approved yet.",
+      });
+    }
+
+    const {
+      centerName,
+      description,
+      address,
+      city,
+      state,
+      pincode,
+      ageGroup,
+      capacity,
+      monthlyFee,
+      openingTime,
+      closingTime,
+      is24Hours,
+      facilities,
+      latitude,
+      longitude,
+      isFeatured,
+      status,
+    } = req.body;
+
+    if (
+      !centerName ||
+      !description ||
+      !address ||
+      !city ||
+      !state ||
+      !pincode ||
+      !ageGroup ||
+      !capacity ||
+      !monthlyFee ||
+      !openingTime ||
+      !closingTime
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const existingCenter = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (existingCenter) {
+      return res.status(409).json({
+        success: false,
+        message: "Center already exists",
+      });
+    }
+
+    const slug = generateSlug(centerName);
+
+    const centerImages =
+      req.files?.map((file) => ({
+        url: file.path,
+        public_id: file.filename,
+      })) || [];
+
+    const center = await Center.create({
+      provider: provider._id,
+      centerName,
+      slug,
+      description,
+      address,
+      city,
+      state,
+      pincode,
+      ageGroup,
+      capacity,
+      monthlyFee,
+      openingTime,
+      closingTime,
+      is24Hours,
+      facilities: facilities
+        ? Array.isArray(facilities)
+          ? facilities
+          : JSON.parse(facilities)
+        : [],
+      location: {
+        latitude: latitude || null,
+        longitude: longitude || null,
+      },
+      isFeatured: isFeatured === "true" || isFeatured === true,
+      status: status || "active",
+      centerImages,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Center created successfully",
+      center,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getCenters = async (req, res) => {
+  try {
+    const { city, ageGroup, is24Hours } = req.query;
+
+    const filter = {};
+
+    if (city) filter.city = city;
+    if (ageGroup) filter.ageGroup = ageGroup;
+
+    if (is24Hours !== undefined) {
+      filter.is24Hours = is24Hours === "true";
+    }
+
+    const centers = await Center.find(filter)
+      .populate({
+        path: "provider",
+        populate: {
+          path: "user",
+          select: "name email",
+        },
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: centers.length,
+      centers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getSingleCenter = async (req, res) => {
+  try {
+    const center = await Center.findOne({
+      slug: req.params.slug,
+    }).populate({
+      path: "provider",
+      populate: {
+        path: "user",
+        select: "name email",
+      },
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      center,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const updateCenter = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      _id: req.params.id,
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    if (req.body.centerName) {
+      req.body.slug = generateSlug(req.body.centerName);
+    }
+
+    if (req.body.facilities) {
+      req.body.facilities = Array.isArray(req.body.facilities)
+        ? req.body.facilities
+        : JSON.parse(req.body.facilities);
+    }
+
+    if (req.body.latitude !== undefined || req.body.longitude !== undefined) {
+      req.body.location = {
+        latitude: req.body.latitude ?? center.location?.latitude ?? null,
+        longitude: req.body.longitude ?? center.location?.longitude ?? null,
+      };
+
+      delete req.body.latitude;
+      delete req.body.longitude;
+    }
+
+    if (req.body.isFeatured !== undefined) {
+      req.body.isFeatured =
+        req.body.isFeatured === "true" || req.body.isFeatured === true;
+    }
+
+    if (req.files?.length) {
+      // Delete old images
+      for (const image of center.centerImages) {
+        await cloudinary.uploader.destroy(image.public_id);
+      }
+
+      // Save new images
+      req.body.centerImages = req.files.map((file) => ({
+        url: file.path,
+        public_id: file.filename,
+      }));
+    }
+
+    const updatedCenter = await Center.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Center updated successfully",
+      center: updatedCenter,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const deleteCenter = async (req, res) => {
+  try {
+    const center = await Center.findById(req.params.id);
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    await center.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: "Center deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export {
+  createCenter,
+  getCenters,
+  getSingleCenter,
+  updateCenter,
+  deleteCenter,
+};
+-----------------------------------------------------------------------------
+paymentController=>
+
+import razorpay from "../config/razorpay.js";
+import crypto from "crypto";
+
+import Booking from "../models/Booking.js";
+import Payment from "../models/Payment.js";
+import Subscription from "../models/Subscription.js";
+
+const createOrder = async (req, res) => {
+  try {
+    const { bookingId, planType, center, startDate, endDate } = req.body;
+
+    // Booking or Subscription validation
+    if (!bookingId && !planType) {
+      return res.status(400).json({
+        success: false,
+        message: "Booking or Subscription details are required",
+      });
+    }
+
+    let amount = 0;
+    let booking = null;
+
+    // -----------------------------
+    // Booking Payment
+    // -----------------------------
+    if (bookingId) {
+      booking = await Booking.findById(bookingId).populate(
+        "center",
+        "monthlyFee",
+      );
+
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: "Booking not found",
+        });
+      }
+
+      // Booking owner validation
+      if (booking.parent.toString() !== req.user._id.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized booking access",
+        });
+      }
+
+      // Booking approval validation
+      if (booking.status !== "Approved") {
+        return res.status(400).json({
+          success: false,
+          message: "Booking is not approved yet",
+        });
+      }
+
+      // Already paid validation
+      if (booking.paymentStatus === "Paid") {
+        return res.status(400).json({
+          success: false,
+          message: "Booking has already been paid",
+        });
+      }
+
+      // Duplicate payment validation
+      const existingPayment = await Payment.findOne({
+        booking: bookingId,
+        status: {
+          $in: ["Pending", "Success"],
+        },
+      });
+
+      if (existingPayment) {
+        return res.status(400).json({
+          success: false,
+          message: "Payment already exists for this booking",
+        });
+      }
+
+      amount = booking.center.monthlyFee;
+    }
+
+    // -----------------------------
+    // Subscription Payment
+    // -----------------------------
+    if (planType) {
+      if (!center || !startDate || !endDate) {
+        return res.status(400).json({
+          success: false,
+          message: "Incomplete subscription information",
+        });
+      }
+
+      const centerData = await Center.findById(center).select("monthlyFee");
+
+      if (!centerData) {
+        return res.status(404).json({
+          success: false,
+          message: "Center not found",
+        });
+      }
+
+      amount = centerData.monthlyFee;
+    }
+
+    // -----------------------------
+    // Razorpay Order
+    // -----------------------------
+    const options = {
+      amount: amount * 100,
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    // -----------------------------
+    // Save Payment
+    // -----------------------------
+    const payment = await Payment.create({
+      parent: req.user._id,
+
+      booking: bookingId || null,
+
+      subscriptionData: planType
+        ? {
+            center,
+            planType,
+            startDate,
+            endDate,
+          }
+        : null,
+
+      razorpayOrderId: order.id,
+
+      amount,
+
+      currency: order.currency,
+
+      status: "Pending",
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Payment order created successfully",
+      order,
+      payment,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const verifyPayment = async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
+
+    // -----------------------------
+    // Validate Request
+    // -----------------------------
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing payment details",
+      });
+    }
+
+    // -----------------------------
+    // Verify Razorpay Signature
+    // -----------------------------
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest("hex");
+
+    if (generatedSignature !== razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment verification failed",
+      });
+    }
+
+    // -----------------------------
+    // Find Payment
+    // -----------------------------
+    const payment = await Payment.findOne({
+      razorpayOrderId: razorpay_order_id,
+    });
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment record not found",
+      });
+    }
+
+    // -----------------------------
+    // Already Verified
+    // -----------------------------
+    if (payment.status === "Success") {
+      return res.status(400).json({
+        success: false,
+        message: "Payment already verified",
+      });
+    }
+
+    // -----------------------------
+    // Update Payment
+    // -----------------------------
+    payment.razorpayPaymentId = razorpay_payment_id;
+    payment.razorpaySignature = razorpay_signature;
+    payment.status = "Success";
+    payment.paidAt = new Date();
+
+    await payment.save();
+
+    // -----------------------------
+    // Booking Payment
+    // -----------------------------
+    if (payment.booking) {
+      const booking = await Booking.findById(payment.booking);
+
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: "Booking not found",
+        });
+      }
+
+      booking.paymentStatus = "Paid";
+
+      await booking.save();
+    }
+
+    // -----------------------------
+    // Subscription Payment
+    // -----------------------------
+    if (payment.subscriptionData) {
+      const subscription = await Subscription.create({
+        parent: payment.parent,
+
+        center: payment.subscriptionData.center,
+
+        planType: payment.subscriptionData.planType,
+
+        startDate: payment.subscriptionData.startDate,
+
+        endDate: payment.subscriptionData.endDate,
+
+        amount: payment.amount,
+
+        status: "Active",
+      });
+
+      payment.subscription = subscription._id;
+
+      payment.subscriptionData = null;
+
+      await payment.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment verified successfully",
+      payment,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getMyPayments = async (req, res) => {
+  try {
+    const payments = await Payment.find({
+      parent: req.user._id,
+    })
+      .populate({
+        path: "booking",
+        select: "childName bookingDate planType status paymentStatus center",
+        populate: {
+          path: "center",
+          select: "centerName city",
+        },
+      })
+      .populate({
+        path: "subscription",
+        select: "planType startDate endDate amount status center",
+        populate: {
+          path: "center",
+          select: "centerName city",
+        },
+      })
+      .sort({
+        createdAt: -1,
+      });
+
+    return res.status(200).json({
+      success: true,
+
+      total: payments.length,
+
+      payments,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+
+      message: error.message,
+    });
+  }
+};
+
+const getPaymentDetails = async (req, res) => {
+  try {
+    const payment = await Payment.findById(req.params.id)
+      .populate({
+        path: "booking",
+        populate: {
+          path: "center",
+          select: "centerName city monthlyFee",
+        },
+      })
+      .populate({
+        path: "subscription",
+        populate: {
+          path: "center",
+          select: "centerName city monthlyFee",
+        },
+      });
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      });
+    }
+
+    if (payment.parent.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized access",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      payment,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export { createOrder, verifyPayment, getMyPayments, getPaymentDetails };
+---------------------------------------------------------------------------------
+providerController=>
+
+import Provider from "../models/Provider.js";
+
+const createProviderProfile = async (req, res) => {
+  try {
+    const { phone, address, qualification, experience } = req.body;
+
+    if (!phone || !address || !qualification || !experience) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const existingProvider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (existingProvider) {
+      return res.status(409).json({
+        success: false,
+        message: "Provider profile already exists",
+      });
+    }
+
+    const provider = await Provider.create({
+      user: req.user._id,
+      phone,
+      address,
+      qualification,
+      experience,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Provider profile created successfully",
+      provider,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getProviderProfile = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    }).populate("user", "-password");
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      provider,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const updateProviderProfile = async (req, res) => {
+  try {
+    const provider = await Provider.findOneAndUpdate(
+      { user: req.user._id },
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider profile not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Provider profile updated successfully",
+      provider,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export { createProviderProfile, getProviderProfile, updateProviderProfile };
+---------------------------------------------------------------------------------
+subscriptionController=>
+
+
+import Subscription from "../models/Subscription.js";
+import Center from "../models/Center.js";
+
+const createSubscription = async (req, res) => {
+  try {
+    const { center, planType, startDate, endDate, amount } = req.body;
+
+    if (
+      !center ||
+      !planType ||
+      !startDate ||
+      !endDate ||
+      amount === undefined
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const centerExists = await Center.findById(center);
+
+    if (!centerExists) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const subscription = await Subscription.create({
+      parent: req.user._id,
+      center,
+      planType,
+      startDate,
+      endDate,
+      amount,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Subscription created successfully",
+      subscription,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getMySubscriptions = async (req, res) => {
+  try {
+    const subscriptions = await Subscription.find({
+      parent: req.user._id,
+    })
+      .populate("center", "centerName city")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: subscriptions.length,
+      subscriptions,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export { createSubscription, getMySubscriptions };
+=====-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+					//Middleware//
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+middleware-/
+			authMiddleware.js
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+
+const authMiddleware = async (req, res, next) => {
+  try {
+    const token = req.cookies.token;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    req.user = user;
+
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid Token",
+    });
+  }
+};
+
+export default authMiddleware;
+----------------------------------------------------------------
+roleMiddleware.js=>
+
+const roleMiddleware = (...roles) => {
+  return (req, res, next) => {
+    console.log("User Role:", req.user.role);
+    console.log("Allowed Roles:", roles);
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access Denied",
+      });
+    }
+
+    next();
+  };
+};
+
+export default roleMiddleware;
+-------------------------------------------------------------------
+uploadMiddleware.js =>
+
+
+import multer from "multer";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import cloudinary from "../config/cloudinary.js";
+
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => ({
+    folder: process.env.CLOUDINARY_FOLDER || "little-steps",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    resource_type: "image",
+  }),
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedMimeTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+  ];
+
+  if (!allowedMimeTypes.includes(file.mimetype)) {
+    return cb(
+      new Error("Only JPG, JPEG, PNG and WEBP images are allowed."),
+      false,
+    );
+  }
+
+  cb(null, true);
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
+
+export default upload;
+=========================================================================
+				//Models//
+
+/-Booking.js
+
+
+import mongoose from "mongoose";
+
+const bookingSchema = new mongoose.Schema(
+  {
+    parent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    center: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Center",
+      required: true,
+    },
+
+    childName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    childAge: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    bookingDate: {
+      type: Date,
+      required: true,
+    },
+
+    startTime: {
+      type: String,
+      required: true,
+    },
+
+    endTime: {
+      type: String,
+      required: true,
+    },
+
+    planType: {
+      type: String,
+      enum: ["Hourly", "Daily", "Monthly"],
+      required: true,
+    },
+
+    specialInstructions: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected", "Completed", "Cancelled"],
+      default: "Pending",
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["Pending", "Paid", "Failed"],
+      default: "Pending",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export default mongoose.model("Booking", bookingSchema);
+--------------------------------------------------------------------------------
+
+/-Caregiver.js
+
+import mongoose from "mongoose";
+import { v2 as cloudinary } from "cloudinary";
+
+const caregiverSchema = new mongoose.Schema(
+  {
+    center: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Center",
+      required: true,
+    },
+
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    qualification: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    experience: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    specialization: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    profileImage: {
+      url: {
+        type: String,
+        default: "",
+      },
+      public_id: {
+        type: String,
+        default: "",
+      },
+    },
+
+    isAvailable: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Delete Cloudinary image before deleting caregiver
+caregiverSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function (next) {
+    try {
+      if (this.profileImage?.public_id) {
+        await cloudinary.uploader.destroy(this.profileImage.public_id);
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+const Caregiver = mongoose.model("Caregiver", caregiverSchema);
+
+export default Caregiver;
+
+---------------------------------------------------------------------------
+
+/-Center.js
+
+import mongoose from "mongoose";
+import { v2 as cloudinary } from "cloudinary";
+
+const centerSchema = new mongoose.Schema(
+  {
+    provider: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Provider",
+      required: true,
+    },
+
+    centerName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+
+    description: {
+      type: String,
+      required: true,
+    },
+
+    address: {
+      type: String,
+      required: true,
+    },
+
+    city: {
+      type: String,
+      required: true,
+    },
+
+    state: {
+      type: String,
+      required: true,
+    },
+
+    pincode: {
+      type: String,
+      required: true,
+    },
+
+    ageGroup: {
+      type: String,
+      required: true,
+    },
+
+    capacity: {
+      type: Number,
+      required: true,
+    },
+
+    monthlyFee: {
+      type: Number,
+      required: true,
+    },
+
+    openingTime: {
+      type: String,
+      required: true,
+    },
+
+    closingTime: {
+      type: String,
+      required: true,
+    },
+
+    is24Hours: {
+      type: Boolean,
+      default: false,
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
+
+    facilities: [
+      {
+        type: String,
+      },
+    ],
+
+    thumbnail: {
+      url: String,
+      public_id: String,
+    },
+
+    rating: {
+      type: Number,
+      default: 0,
+    },
+    reviewCount: {
+      type: Number,
+      default: 0,
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false,
+    },
+    status: {
+      type: String,
+
+      enum: ["active", "inactive"],
+
+      default: "active",
+    },
+    location: {
+      latitude: Number,
+
+      longitude: Number,
+    },
+
+    centerImages: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        public_id: {
+          type: String,
+          required: true,
+        },
+      },
+      {
+        url: "...",
+        public_id: "...",
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  },
+);
+
+// Delete Cloudinary images before deleting the center
+centerSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function (next) {
+    try {
+      if (this.centerImages?.length) {
+        for (const image of this.centerImages) {
+          await cloudinary.uploader.destroy(image.public_id);
+        }
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+const Center = mongoose.model("Center", centerSchema);
+
+export default Center;
+
+/----------------------------------------------------------------------------------
+/-Payment.js
+import mongoose from "mongoose";
+
+const paymentSchema = new mongoose.Schema(
+  {
+    parent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    booking: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Booking",
+      default: null,
+    },
+
+    subscription: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Subscription",
+      default: null,
+    },
+
+    razorpayOrderId: {
+      type: String,
+      required: true,
+    },
+
+    razorpayPaymentId: {
+      type: String,
+      default: "",
+    },
+
+    amount: {
+      type: Number,
+      required: true,
+    },
+
+    currency: {
+      type: String,
+      default: "INR",
+    },
+
+    status: {
+      type: String,
+      enum: ["Pending", "Success", "Failed"],
+      default: "Pending",
+    },
+
+    subscriptionData: {
+      center: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Center",
+      },
+
+      planType: String,
+
+      startDate: Date,
+
+      endDate: Date,
+    },
+
+    razorpaySignature: {
+      type: String,
+      default: "",
+    },
+
+    paymentMethod: {
+      type: String,
+      default: "Razorpay",
+    },
+
+    paidAt: {
+      type: Date,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export default mongoose.model("Payment", paymentSchema);
+----------------------------------------------------------------------------------
+/-Provider.js
+
+import mongoose from "mongoose";
+
+const providerSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+    },
+
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    address: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    qualification: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    experience: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    governmentId: {
+      type: String,
+      default: "",
+    },
+
+    profileImage: {
+      type: String,
+      default: "",
+    },
+
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+const Provider = mongoose.model("Provider", providerSchema);
+
+export default Provider;
+---------------------------------------------------------------------------------------
+/-Subscription.js
+
+import mongoose from "mongoose";
+
+const subscriptionSchema = new mongoose.Schema(
+  {
+    parent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    center: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Center",
+      required: true,
+    },
+
+    planType: {
+      type: String,
+      enum: ["Monthly", "Quarterly", "Yearly"],
+      required: true,
+    },
+
+    startDate: {
+      type: Date,
+      required: true,
+    },
+
+    endDate: {
+      type: Date,
+      required: true,
+    },
+
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    status: {
+      type: String,
+      enum: ["Pending", "Active", "Expired", "Cancelled"],
+      default: "Pending",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+const Subscription = mongoose.model("Subscription", subscriptionSchema);
+
+export default Subscription;
+-------------------------------------------------------
+/-User.js
+
+import mongoose from "mongoose";
+import validator from "validator";
+
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+    },
+
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      validate: [validator.isEmail, "Please enter a valid email"],
+    },
+
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: 8,
+    },
+
+    role: {
+      type: String,
+      enum: ["parent", "provider", "admin"],
+      default: "parent",
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "blocked"],
+      default: "active",
+    },
+
+    isApproved: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+const User = mongoose.model("User", userSchema);
+
+export default User;
+------------------------------------------------------------------------
+
+				//Routes//
+
+adminRoutes.js =>
+
+import express from "express";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+
+import {
+  getDashboardStats,
+  getAllUsers,
+  getAllProviders,
+  getPendingProviders,
+  getSingleProvider,
+  getSingleUser,
+  getSingleCenter,
+  updateCenterStatus,
+  getAllCenters,
+  approveProvider,
+  rejectProvider,
+  updateUserStatus,
+  getAllBookings,
+  getSingleBooking,
+  getBookingsByStatus,
+  getBookingsByPaymentStatus,
+  getAllSubscriptions,
+  getSingleSubscription,
+  getSubscriptionsByStatus,
+  getAllPayments,
+  getSinglePayment,
+  getPaymentsByStatus,
+  getOverviewReport,
+  getRevenueReport,
+  getBookingReport,
+  getSubscriptionReport,
+} from "../controllers/adminController.js";
+
+const router = express.Router();
+
+//Get Dashboard States
+router.get(
+  "/dashboard",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getDashboardStats,
+);
+
+//Get all users
+
+router.get("/users", authMiddleware, roleMiddleware("admin"), getAllUsers);
+
+router.get(
+  "/users/:id",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getSingleUser,
+);
+
+router.patch(
+  "/users/:id/status",
+  authMiddleware,
+  roleMiddleware("admin"),
+  updateUserStatus,
+);
+
+//Get all providers
+
+router.get(
+  "/providers",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getAllProviders,
+);
+
+router.get(
+  "/providers/pending",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getPendingProviders,
+);
+
+router.get(
+  "/providers/:id",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getSingleProvider,
+);
+
+router.patch(
+  "/providers/:id/approve",
+  authMiddleware,
+  roleMiddleware("admin"),
+  approveProvider,
+);
+
+router.patch(
+  "/providers/:id/reject",
+  authMiddleware,
+  roleMiddleware("admin"),
+  rejectProvider,
+);
+
+//Get all Centers
+router.get("/centers", authMiddleware, roleMiddleware("admin"), getAllCenters);
+
+router.get(
+  "/centers/:id",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getSingleCenter,
+);
+
+router.patch(
+  "/centers/:id/status",
+  authMiddleware,
+  roleMiddleware("admin"),
+  updateCenterStatus,
+);
+//Get Admin Bookings
+
+router.get(
+  "/bookings",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getAllBookings,
+);
+
+router.get(
+  "/bookings/:id",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getSingleBooking,
+);
+
+router.get(
+  "/bookings/status/:status",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getBookingsByStatus,
+);
+
+router.get(
+  "/bookings/payment/:paymentStatus",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getBookingsByPaymentStatus,
+);
+
+// Get all Subscriptions
+router.get(
+  "/subscriptions",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getAllSubscriptions,
+);
+
+router.get(
+  "/subscriptions/:id",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getSingleSubscription,
+);
+
+router.get(
+  "/subscriptions/status/:status",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getSubscriptionsByStatus,
+);
+
+router.get(
+  "/payments",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getAllPayments,
+);
+
+router.get(
+  "/payments/:id",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getSinglePayment,
+);
+
+router.get(
+  "/payments/status/:status",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getPaymentsByStatus,
+);
+
+//Get all Analyticals reports
+
+router.get(
+  "/reports/overview",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getOverviewReport,
+);
+
+router.get(
+  "/reports/revenue",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getRevenueReport,
+);
+
+router.get(
+  "/reports/bookings",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getBookingReport,
+);
+
+router.get(
+  "/reports/subscriptions",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getSubscriptionReport,
+);
+
+export default router;
+-------------------------------------------------------------------------------
+authRoutes.js=>
+
+import express from "express";
+
+import {
+  register,
+  login,
+  logout,
+  getCurrentUser,
+} from "../controllers/authController.js";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+
+const router = express.Router();
+
+router.post("/register", register);
+
+router.post("/login", login);
+
+router.post("/logout", logout);
+
+router.get("/me", authMiddleware, getCurrentUser);
+
+export default router;
+------------------------------------------------------------------------
+/-bookingRoutes.js
+
+import express from "express";
+
+import {
+  createBooking,
+  getMyBookings,
+  getProviderBookings,
+  getBookingDetails,
+  cancelBooking,
+  approveBooking,
+  rejectBooking,
+} from "../controllers/bookingController.js";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+
+const router = express.Router();
+
+router.post("/", authMiddleware, roleMiddleware("parent"), createBooking);
+
+router.get(
+  "/my-bookings",
+  authMiddleware,
+  roleMiddleware("parent"),
+  getMyBookings,
+);
+
+router.get("/:id", authMiddleware, getBookingDetails);
+
+router.patch(
+  "/cancel/:id",
+  authMiddleware,
+  roleMiddleware("parent"),
+  cancelBooking,
+);
+
+router.get(
+  "/provider",
+  authMiddleware,
+  roleMiddleware("provider"),
+  getProviderBookings,
+);
+
+router.patch(
+  "/approve/:id",
+  authMiddleware,
+  roleMiddleware("provider"),
+  approveBooking,
+);
+
+router.patch(
+  "/reject/:id",
+  authMiddleware,
+  roleMiddleware("provider"),
+  rejectBooking,
+);
+
+export default router;
+---------------------------------------------------------------------------
+/-caregiverRoutes.js
+
+import express from "express";
+
+import {
+  createCaregiver,
+  getCaregivers,
+  getSingleCaregiver,
+  getProviderCaregivers,
+  updateCaregiver,
+  deleteCaregiver,
+} from "../controllers/caregiverController.js";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+
+const router = express.Router();
+
+// Public Routes
+router.get("/", getCaregivers);
+
+// Provider Routes
+router.get(
+  "/provider",
+  authMiddleware,
+  roleMiddleware("provider"),
+  getProviderCaregivers,
+);
+
+router.post("/", authMiddleware, roleMiddleware("provider"), createCaregiver);
+
+router.put("/:id", authMiddleware, roleMiddleware("provider"), updateCaregiver);
+
+router.delete(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("provider"),
+  deleteCaregiver,
+);
+
+// Dynamic Route (keep last)
+router.get("/:id", getSingleCaregiver);
+
+export default router;
+---------------------------------------------------------------------------------
+/-centerRoutes.js
+
+import express from "express";
+
+import {
+  createCenter,
+  getCenters,
+  getSingleCenter,
+  updateCenter,
+  deleteCenter,
+} from "../controllers/centerController.js";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
+
+const router = express.Router();
+
+/* Public */
+router.get("/", getCenters);
+router.get("/slug/:slug", getSingleCenter);
+
+/* Provider */
+router.post(
+  "/",
+  authMiddleware,
+  roleMiddleware("provider"),
+  upload.array("centerImages", 10),
+  createCenter,
+);
+
+router.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("provider"),
+  upload.array("centerImages", 10),
+  updateCenter,
+);
+
+/* Admin */
+router.delete("/:id", authMiddleware, roleMiddleware("admin"), deleteCenter);
+
+export default router;
+---------------------------------------------------------------------------------
+
+/-paymentRoutes.js
+
+
+import express from "express";
+
+import {
+  createOrder,
+  verifyPayment,
+  getMyPayments,
+  getPaymentDetails,
+} from "../controllers/paymentController.js";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+
+const router = express.Router();
+
+router.post(
+  "/create-order",
+  authMiddleware,
+  roleMiddleware("parent"),
+  createOrder,
+);
+
+router.post("/verify", authMiddleware, roleMiddleware("parent"), verifyPayment);
+
+router.get(
+  "/my-payments",
+
+  authMiddleware,
+
+  roleMiddleware("parent"),
+
+  getMyPayments,
+);
+
+router.get(
+  "/:id",
+
+  authMiddleware,
+
+  roleMiddleware("parent"),
+
+  getPaymentDetails,
+);
+
+export default router;
+-------------------------------------------------------------
+
+/-providerRoutes.js
+
+import express from "express";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+import {
+  createProviderProfile,
+  getProviderProfile,
+  updateProviderProfile,
+} from "../controllers/providerController.js";
+
+const router = express.Router();
+
+router.post(
+  "/profile",
+  authMiddleware,
+  roleMiddleware("provider"),
+  createProviderProfile,
+);
+
+router.get(
+  "/profile",
+  authMiddleware,
+  roleMiddleware("provider"),
+  getProviderProfile,
+);
+
+router.put(
+  "/profile",
+  authMiddleware,
+  roleMiddleware("provider"),
+  updateProviderProfile,
+);
+
+export default router;
+--------------------------------------------------------------------
+subscriptionsRoutes.js->
+
+
+import express from "express";
+
+import {
+  createSubscription,
+  getMySubscriptions,
+} from "../controllers/subscriptionController.js";
+
+import authMiddleware from "../middleware/authMiddleware.js";
+import roleMiddleware from "../middleware/roleMiddleware.js";
+
+const router = express.Router();
+
+router.post("/", authMiddleware, roleMiddleware("parent"), createSubscription);
+
+router.get(
+  "/my-subscriptions",
+  authMiddleware,
+  roleMiddleware("parent"),
+  getMySubscriptions,
+);
+
+export default router;
+-----------------------------------------------------------------------------------------
+
+						//Utils//
+
+generateToken.js =>
+
+import jwt from "jsonwebtoken";
+
+const generateToken = (userId, role) => {
+  return jwt.sign(
+    {
+      id: userId,
+      role,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "7d",
+    },
+  );
+};
+
+export default generateToken;
+
+-------------------------------------------------------
+generateSlug=>
+
+const generateSlug = (text) => {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-]+/g, "");
+};
+
+export default generateSlug;
+----------------------------------------------------------------
+app.js =>
+
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import authRoutes from "./routes/authRoutes.js";
+import providerRoutes from "./routes/providerRoutes.js";
+import centerRoutes from "./routes/centerRoutes.js";
+import caregiverRoutes from "./routes/caregiverRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+
+import adminRoutes from "./routes/adminRoutes.js";
+
+const app = express();
+
+app.use(
+  cors({
+    origin: [process.env.CLIENT_URL, process.env.ADMIN_URL],
+    credentials: true,
+  }),
+);
+
+app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
+
+app.use(cookieParser());
+
+app.use("/api/auth", authRoutes);
+app.use("/api/providers", providerRoutes);
+app.use("/api/centers", centerRoutes);
+app.use("/api/caregivers", caregiverRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/admin", adminRoutes);
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Little Steps Backend Running",
+  });
+});
+
+export default app;
+
+-----------------------------------------------------------
+server.js =>
+
+import dotenv from "dotenv";
+
+dotenv.config();
+
+import app from "./app.js";
+import connectDB from "./config/db.js";
+
+const PORT = process.env.PORT || 8000;
+
+connectDB();
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+
+=====================================================================================================
