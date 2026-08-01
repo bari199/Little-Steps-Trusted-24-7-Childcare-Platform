@@ -59,6 +59,10 @@ const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
   useEffect(() => {
     fetchCurrentUser();
   }, []);
@@ -72,6 +76,7 @@ const AuthProvider = ({ children }) => {
         login,
         logout,
         fetchCurrentUser,
+        updateUser,
       }}
     >
       {children}

@@ -8,11 +8,11 @@ import caregiverRoutes from "./routes/caregiverRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import subscriptionRoutes from "./routes/subscriptionRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
-
+//import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
 const app = express();
-
+console.log("User Routes Loaded");
 app.use(
   cors({
     origin: [process.env.CLIENT_URL, process.env.ADMIN_URL],
@@ -26,7 +26,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser());
 
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.originalUrl}`);
+  next();
+});
+
 app.use("/api/auth", authRoutes);
+
 app.use("/api/providers", providerRoutes);
 app.use("/api/centers", centerRoutes);
 app.use("/api/caregivers", caregiverRoutes);

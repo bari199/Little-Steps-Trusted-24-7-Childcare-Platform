@@ -24,8 +24,6 @@ router.get(
   getMyBookings,
 );
 
-router.get("/:id", authMiddleware, getBookingDetails);
-
 router.patch(
   "/cancel/:id",
   authMiddleware,
@@ -53,5 +51,7 @@ router.patch(
   roleMiddleware("provider"),
   rejectBooking,
 );
+
+router.get("/:id", authMiddleware, getBookingDetails);
 
 export default router;
