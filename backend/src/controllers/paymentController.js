@@ -6,11 +6,17 @@ import Payment from "../models/Payment.js";
 import Subscription from "../models/Subscription.js";
 import Center from "../models/Center.js";
 
+console.log("PAYMENT CONTROLLER LOADED");
 const createOrder = async (req, res) => {
+  console.log("CREATE ORDER API HIT");
   try {
+    console.log("========== CREATE ORDER ==========");
+    console.log("User:", req.user);
+    console.log("Request Body:", req.body);
+
     const { bookingId, planType, center, startDate, endDate } = req.body;
 
-    // Booking or Subscription validation
+    // Validate request
     if (!bookingId && !planType) {
       return res.status(400).json({
         success: false,
@@ -21,14 +27,13 @@ const createOrder = async (req, res) => {
     let amount = 0;
     let booking = null;
 
-    // -----------------------------
+    // ============================
     // Booking Payment
-    // -----------------------------
+    // ============================
     if (bookingId) {
-      booking = await Booking.findById(bookingId).populate(
-        "center",
-        "monthlyFee",
-      );
+      booking = await Booking.findById(bookingId);
+
+      console.log("Booking:", booking);
 
       if (!booking) {
         return res.status(404).json({
@@ -37,7 +42,6 @@ const createOrder = async (req, res) => {
         });
       }
 
-      // Booking owner validation
       if (booking.parent.toString() !== req.user._id.toString()) {
         return res.status(403).json({
           success: false,
@@ -45,7 +49,6 @@ const createOrder = async (req, res) => {
         });
       }
 
-      // Booking approval validation
       if (booking.status !== "Approved") {
         return res.status(400).json({
           success: false,
@@ -53,7 +56,6 @@ const createOrder = async (req, res) => {
         });
       }
 
-      // Already paid validation
       if (booking.paymentStatus === "Paid") {
         return res.status(400).json({
           success: false,
@@ -61,12 +63,9 @@ const createOrder = async (req, res) => {
         });
       }
 
-      // Duplicate payment validation
       const existingPayment = await Payment.findOne({
         booking: bookingId,
-        status: {
-          $in: ["Pending", "Success"],
-        },
+        status: { $in: ["Pending", "Success"] },
       });
 
       if (existingPayment) {
@@ -76,12 +75,25 @@ const createOrder = async (req, res) => {
         });
       }
 
-      amount = booking.center.monthlyFee;
+      if (
+        booking.amount === undefined ||
+        booking.amount === null ||
+        booking.amount <= 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid booking amount",
+        });
+      }
+
+      amount = booking.amount;
+
+      console.log("Booking Amount:", amount);
     }
 
-    // -----------------------------
+    // ============================
     // Subscription Payment
-    // -----------------------------
+    // ============================
     if (planType) {
       if (!center || !startDate || !endDate) {
         return res.status(400).json({
@@ -90,7 +102,9 @@ const createOrder = async (req, res) => {
         });
       }
 
-      const centerData = await Center.findById(center).select("monthlyFee");
+      const centerData = await Center.findById(center);
+
+      console.log("Center:", centerData);
 
       if (!centerData) {
         return res.status(404).json({
@@ -100,27 +114,28 @@ const createOrder = async (req, res) => {
       }
 
       amount = centerData.monthlyFee;
+
+      console.log("Subscription Amount:", amount);
     }
 
-    // -----------------------------
-    // Razorpay Order
-    // -----------------------------
+    console.log("Final Amount:", amount);
+
     const options = {
-      amount: amount * 100,
+      amount: Math.round(amount * 100),
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     };
 
+    console.log("Razorpay Options:", options);
+
     const order = await razorpay.orders.create(options);
 
-    // -----------------------------
-    // Save Payment
-    // -----------------------------
+    console.log("Razorpay Order:", order);
+
     const payment = await Payment.create({
       parent: req.user._id,
-
       booking: bookingId || null,
-
+      subscription: null,
       subscriptionData: planType
         ? {
             center,
@@ -129,15 +144,13 @@ const createOrder = async (req, res) => {
             endDate,
           }
         : null,
-
       razorpayOrderId: order.id,
-
       amount,
-
       currency: order.currency,
-
       status: "Pending",
     });
+
+    console.log("Payment Saved:", payment);
 
     return res.status(201).json({
       success: true,
@@ -146,9 +159,15 @@ const createOrder = async (req, res) => {
       payment,
     });
   } catch (error) {
+    console.error("========== CREATE ORDER ERROR ==========");
+    console.error(error);
+    console.error("Message:", error.message);
+    console.error("Stack:", error.stack);
+
     return res.status(500).json({
       success: false,
       message: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };

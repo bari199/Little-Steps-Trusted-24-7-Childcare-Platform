@@ -15,6 +15,7 @@ const createBooking = async (req, res) => {
       specialInstructions,
     } = req.body;
 
+    // Validation
     if (
       !center ||
       !childName ||
@@ -30,6 +31,9 @@ const createBooking = async (req, res) => {
       });
     }
 
+    console.log("Request Body:", req.body);
+
+    // Check Center
     const centerExists = await Center.findById(center);
 
     if (!centerExists) {
@@ -39,31 +43,65 @@ const createBooking = async (req, res) => {
       });
     }
 
-    const booking = await Booking.create({
+    console.log("Center Found:", centerExists);
+    console.log("Monthly Fee:", centerExists.monthlyFee);
+
+    // Calculate Amount
+    let amount = 0;
+
+    switch (planType) {
+      case "Hourly":
+        amount = Math.round(centerExists.monthlyFee / 160);
+        break;
+
+      case "Daily":
+        amount = Math.round(centerExists.monthlyFee / 30);
+        break;
+
+      case "Monthly":
+        amount = centerExists.monthlyFee;
+        break;
+
+      default:
+        amount = centerExists.monthlyFee;
+    }
+
+    console.log("Calculated Amount:", amount);
+
+    // Booking Data
+    const bookingData = {
       parent: req.user._id,
       center,
       childName,
-      childAge,
+      childAge: Number(childAge),
       bookingDate,
       startTime,
       endTime,
       planType,
-      specialInstructions,
-    });
+      specialInstructions: specialInstructions || "",
+      amount,
+    };
 
-    res.status(201).json({
+    console.log("Booking Data:", bookingData);
+
+    // Create Booking
+    const booking = await Booking.create(bookingData);
+
+    return res.status(201).json({
       success: true,
       message: "Booking request submitted successfully",
       booking,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("CREATE BOOKING ERROR:");
+    console.error(error);
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 const getBookingDetails = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
@@ -218,9 +256,14 @@ const getProviderBookings = async (req, res) => {
 };
 const approveBooking = async (req, res) => {
   try {
+    console.log("Approve Booking ID:", req.params.id);
+    console.log("Logged User:", req.user);
+
     const provider = await Provider.findOne({
       user: req.user._id,
     });
+
+    console.log("Provider:", provider);
 
     if (!provider) {
       return res.status(404).json({
@@ -233,6 +276,8 @@ const approveBooking = async (req, res) => {
       provider: provider._id,
     });
 
+    console.log("Center:", center);
+
     if (!center) {
       return res.status(404).json({
         success: false,
@@ -244,6 +289,8 @@ const approveBooking = async (req, res) => {
       _id: req.params.id,
       center: center._id,
     });
+
+    console.log("Booking:", booking);
 
     if (!booking) {
       return res.status(404).json({
@@ -262,9 +309,13 @@ const approveBooking = async (req, res) => {
       booking,
     });
   } catch (error) {
+    console.error("APPROVE ERROR");
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: error.message,
+      stack: error.stack,
     });
   }
 };

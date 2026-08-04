@@ -6,7 +6,13 @@ const BookingActions = ({ booking }) => {
 
   return (
     <div className="flex gap-3">
-      {canPay && <RazorpayButton bookingId={booking._id} />}
+      {canPay && (
+        <RazorpayButton
+          payload={{
+            bookingId: booking._id,
+          }}
+        />
+      )}
     </div>
   );
 };

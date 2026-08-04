@@ -18,8 +18,12 @@ const Centers = () => {
     try {
       const data = await getCenters();
 
+      console.log("CENTER API RESPONSE:", data);
+
       setCenters(data.centers);
     } catch (error) {
+      console.log(error.response);
+
       toast.error(error.response?.data?.message || "Failed to load centers");
     } finally {
       setLoading(false);

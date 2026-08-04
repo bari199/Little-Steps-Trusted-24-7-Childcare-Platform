@@ -6,10 +6,8 @@ import ParentNavbar from "./ParentNavbar";
 const ParentLayout = () => {
   return (
     <div className="flex min-h-screen bg-muted/30">
-      {/* Sidebar */}
       <ParentSidebar />
 
-      {/* Content */}
       <div className="flex flex-1 flex-col">
         <ParentNavbar />
 

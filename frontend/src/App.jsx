@@ -14,12 +14,28 @@ import BookingForm from "./pages/parent/BookingForm";
 import MyBookings from "./pages/parent/MyBookings";
 import Payments from "./pages/parent/Payments";
 import BookingDetails from "./pages/parent/BookingDetails";
+import CaregiverDetails from "./pages/parent/CaregiverDetails";
+import ParentCaregivers from "./pages/parent/Caregivers";
 
+import Dashboard from "./pages/provider/Dashboard";
+import DashboardHome from "./pages/provider/DashboardHome";
+import MyCenter from "./pages/provider/MyCenter";
+import Caregivers from "./pages/provider/Caregivers";
+import CreateCaregiver from "./pages/provider/CreateCaregivers";
+import EditCaregiver from "./pages/provider/EditCaregiver";
+import Bookings from "./pages/provider/Bookings";
+import Profile from "./pages/provider/Profile";
+
+import ProviderBookingDetails from "./pages/provider/BookingDetails";
+import ProviderCaregiverDetails from "./pages/provider/CaregiverDetails";
+import CreateCenter from "./pages/provider/CreateCenter";
+import ProviderCenterDetails from "./pages/provider/CenterDetails";
+import EditCenter from "./pages/provider/EditCenter";
 // Temporary Dashboard Pages
 
-const ProviderDashboard = () => <h1>Provider Dashboard</h1>;
+//const ProviderDashboard = () => <h1>Provider Dashboard</h1>;
 const AdminDashboard = () => <h1>Admin Dashboard</h1>;
-
+console.log("🔥 LITTLE STEPS BACKEND RUNNING");
 function App() {
   return (
     <Routes>
@@ -66,6 +82,24 @@ function App() {
         element={
           <ProtectedRoute roles={["parent"]}>
             <BookingDetails />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/parent/caregivers"
+        element={
+          <ProtectedRoute roles={["parent"]}>
+            <ParentCaregivers />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/parent/caregivers/:id"
+        element={
+          <ProtectedRoute roles={["parent"]}>
+            <CaregiverDetails />
           </ProtectedRoute>
         }
       />
@@ -121,27 +155,41 @@ function App() {
         }
       />
 
-      {/* ================= Parent ================= */}
-
-      <Route
-        path="/parent/dashboard"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <ParentDashboard />
-          </ProtectedRoute>
-        }
-      />
-
       {/* ================= Provider ================= */}
 
       <Route
-        path="/provider/dashboard"
+        path="/provider"
         element={
           <ProtectedRoute roles={["provider"]}>
-            <ProviderDashboard />
+            <Dashboard />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<DashboardHome />} />
+        <Route path="bookings/:id" element={<ProviderBookingDetails />} />
+
+        <Route path="dashboard" element={<DashboardHome />} />
+
+        <Route path="center" element={<MyCenter />} />
+
+        <Route path="create-center" element={<CreateCenter />} />
+
+        <Route path="center/:id" element={<ProviderCenterDetails />} />
+
+        <Route path="edit-center" element={<EditCenter />} />
+
+        <Route path="caregivers" element={<Caregivers />} />
+
+        <Route path="caregivers/create" element={<CreateCaregiver />} />
+
+        <Route path="caregivers/:id" element={<ProviderCaregiverDetails />} />
+
+        <Route path="caregivers/edit/:id" element={<EditCaregiver />} />
+
+        <Route path="bookings" element={<Bookings />} />
+
+        <Route path="profile" element={<Profile />} />
+      </Route>
 
       {/* ================= Admin ================= */}
 

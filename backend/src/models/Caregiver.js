@@ -58,15 +58,9 @@ const caregiverSchema = new mongoose.Schema(
 caregiverSchema.pre(
   "deleteOne",
   { document: true, query: false },
-  async function (next) {
-    try {
-      if (this.profileImage?.public_id) {
-        await cloudinary.uploader.destroy(this.profileImage.public_id);
-      }
-
-      next();
-    } catch (error) {
-      next(error);
+  async function () {
+    if (this.profileImage?.public_id) {
+      await cloudinary.uploader.destroy(this.profileImage.public_id);
     }
   },
 );

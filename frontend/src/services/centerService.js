@@ -1,17 +1,69 @@
 import api from "./api";
 
-// Get All Centers
+// ===============================
+// CREATE CENTER
+// ===============================
+export const createCenter = async (formData) => {
+  const { data } = await api.post("/centers", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return data;
+};
+
+// ===============================
+// GET ALL CENTERS Publically Accessible
+// ===============================
 export const getCenters = async (params = {}) => {
-  const response = await api.get("/centers", {
+  const { data } = await api.get("/centers", {
     params,
   });
 
+  return data;
+};
+
+export const getCenterDetails = async (id) => {
+  const response = await api.get(`/centers/${id}`);
   return response.data;
 };
 
-// Get Single Center
+// ===============================
+// GET SINGLE CENTER BY SLUG
+// ===============================
 export const getCenterBySlug = async (slug) => {
-  const response = await api.get(`/centers/slug/${slug}`);
+  const { data } = await api.get(`/centers/slug/${slug}`);
 
-  return response.data;
+  return data;
+};
+
+// ===============================
+// GET LOGGED-IN PROVIDER CENTER
+// ===============================
+export const getMyCenters = async () => {
+  const { data } = await api.get("/centers/my-centers");
+  return data;
+};
+
+// ===============================
+// UPDATE CENTER
+// ===============================
+export const updateCenter = async (id, formData) => {
+  const { data } = await api.put(`/centers/${id}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return data;
+};
+
+// ===============================
+// DELETE CENTER (Optional)
+// ===============================
+export const deleteCenter = async (id) => {
+  const { data } = await api.delete(`/centers/${id}`);
+
+  return data;
 };

@@ -11,13 +11,14 @@ import {
 
 import authMiddleware from "../middleware/authMiddleware.js";
 import roleMiddleware from "../middleware/roleMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
-// Public Routes
+/* Public */
 router.get("/", getCaregivers);
 
-// Provider Routes
+/* Provider */
 router.get(
   "/provider",
   authMiddleware,
@@ -25,9 +26,21 @@ router.get(
   getProviderCaregivers,
 );
 
-router.post("/", authMiddleware, roleMiddleware("provider"), createCaregiver);
+router.post(
+  "/",
+  authMiddleware,
+  roleMiddleware("provider"),
+  upload.single("profileImage"),
+  createCaregiver,
+);
 
-router.put("/:id", authMiddleware, roleMiddleware("provider"), updateCaregiver);
+router.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware("provider"),
+  upload.single("profileImage"),
+  updateCaregiver,
+);
 
 router.delete(
   "/:id",
@@ -36,7 +49,7 @@ router.delete(
   deleteCaregiver,
 );
 
-// Dynamic Route (keep last)
+/* Dynamic */
 router.get("/:id", getSingleCaregiver);
 
 export default router;

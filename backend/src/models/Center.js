@@ -1,111 +1,3 @@
-// import mongoose from "mongoose";
-
-// const centerSchema = new mongoose.Schema(
-//   {
-//     provider: {
-//       type: mongoose.Schema.Types.ObjectId,
-//       ref: "Provider",
-//       required: true,
-//       unique: true,
-//     },
-
-//     centerName: {
-//       type: String,
-//       required: true,
-//       trim: true,
-//     },
-
-//     description: {
-//       type: String,
-//       required: true,
-//       trim: true,
-//     },
-
-//     address: {
-//       type: String,
-//       required: true,
-//       trim: true,
-//     },
-
-//     city: {
-//       type: String,
-//       required: true,
-//       trim: true,
-//     },
-
-//     state: {
-//       type: String,
-//       required: true,
-//       trim: true,
-//     },
-
-//     pincode: {
-//       type: String,
-//       required: true,
-//       trim: true,
-//     },
-
-//     ageGroup: {
-//       type: String,
-//       required: true,
-//       enum: ["0-2 Years", "2-5 Years", "5+ Years"],
-//     },
-
-//     capacity: {
-//       type: Number,
-//       required: true,
-//       min: 1,
-//     },
-
-//     monthlyFee: {
-//       type: Number,
-//       required: true,
-//       min: 0,
-//     },
-
-//     openingTime: {
-//       type: String,
-//       required: true,
-//     },
-
-//     closingTime: {
-//       type: String,
-//       required: true,
-//     },
-
-//     is24Hours: {
-//       type: Boolean,
-//       default: false,
-//     },
-
-//     facilities: {
-//       type: [String],
-//       default: [],
-//     },
-
-//     centerImages: {
-//       type: [String],
-//       default: [],
-//     },
-//     status: {
-//       type: String,
-//       enum: ["active", "inactive"],
-//       default: "active",
-//     },
-//     slug: {
-//       type: String,
-//       required: true,
-//       unique: true,
-//       lowercase: true,
-//       trim: true,
-//     },
-//   },
-//   {
-//     timestamps: true,
-//   },
-// );
-
-// export default mongoose.model("Center", centerSchema);
 import mongoose from "mongoose";
 import { v2 as cloudinary } from "cloudinary";
 
@@ -171,6 +63,11 @@ const centerSchema = new mongoose.Schema(
       required: true,
     },
 
+    pricePerDay: {
+      type: Number,
+      required: true,
+    },
+
     openingTime: {
       type: String,
       required: true,
@@ -214,13 +111,6 @@ const centerSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    status: {
-      type: String,
-
-      enum: ["active", "inactive"],
-
-      default: "active",
-    },
     location: {
       latitude: Number,
 
@@ -237,10 +127,6 @@ const centerSchema = new mongoose.Schema(
           type: String,
           required: true,
         },
-      },
-      {
-        url: "...",
-        public_id: "...",
       },
     ],
   },

@@ -46,10 +46,30 @@ const BookingForm = () => {
 
   const onSubmit = async (formData) => {
     try {
+      let amount = 0;
+
+      switch (formData.planType) {
+        case "Hourly":
+          amount = Math.round(center.monthlyFee / 160); // Approx hourly
+          break;
+
+        case "Daily":
+          amount = Math.round(center.monthlyFee / 22); // Approx daily
+          break;
+
+        case "Monthly":
+          amount = center.monthlyFee;
+          break;
+
+        default:
+          amount = center.monthlyFee;
+      }
+
       const bookingData = {
         ...formData,
         center: center._id,
         childAge: Number(formData.childAge),
+        amount,
       };
 
       const response = await createBooking(bookingData);
@@ -63,7 +83,6 @@ const BookingForm = () => {
       toast.error(error.response?.data?.message || "Failed to create booking");
     }
   };
-
   if (loading) return <Loading />;
 
   if (!center) return null;

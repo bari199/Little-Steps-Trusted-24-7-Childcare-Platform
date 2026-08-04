@@ -1,4 +1,7 @@
 import Provider from "../models/Provider.js";
+import Booking from "../models/Booking.js";
+import Center from "../models/Center.js";
+import Caregiver from "../models/Caregiver.js";
 
 const createProviderProfile = async (req, res) => {
   try {
@@ -99,4 +102,343 @@ const updateProviderProfile = async (req, res) => {
   }
 };
 
-export { createProviderProfile, getProviderProfile, updateProviderProfile };
+const getProviderDashboard = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const totalBookings = await Booking.countDocuments({
+      center: center._id,
+    });
+
+    const pendingBookings = await Booking.countDocuments({
+      center: center._id,
+      status: "Pending",
+    });
+
+    const approvedBookings = await Booking.countDocuments({
+      center: center._id,
+      status: "Approved",
+    });
+
+    const completedBookings = await Booking.find({
+      center: center._id,
+      paymentStatus: "Paid",
+    });
+
+    const totalRevenue = completedBookings.reduce(
+      (sum, booking) => sum + booking.amount,
+      0,
+    );
+
+    const totalCaregivers = await Caregiver.countDocuments({
+      center: center._id,
+    });
+
+    res.status(200).json({
+      success: true,
+      dashboard: {
+        totalBookings,
+        pendingBookings,
+        approvedBookings,
+        totalRevenue,
+        totalCaregivers,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getDashboardStats = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const bookings = await Booking.find({
+      center: center._id,
+    });
+
+    const totalBookings = bookings.length;
+
+    const pendingBookings = bookings.filter(
+      (b) => b.status === "Pending",
+    ).length;
+
+    const approvedBookings = bookings.filter(
+      (b) => b.status === "Approved",
+    ).length;
+
+    const rejectedBookings = bookings.filter(
+      (b) => b.status === "Rejected",
+    ).length;
+
+    const completedBookings = bookings.filter(
+      (b) => b.status === "Completed",
+    ).length;
+
+    const totalRevenue = bookings
+      .filter((b) => b.paymentStatus === "Paid")
+      .reduce((sum, booking) => sum + booking.amount, 0);
+
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+
+    const monthlyRevenue = bookings
+      .filter((booking) => {
+        const date = new Date(booking.createdAt);
+
+        return (
+          booking.paymentStatus === "Paid" &&
+          date.getMonth() === currentMonth &&
+          date.getFullYear() === currentYear
+        );
+      })
+      .reduce((sum, booking) => sum + booking.amount, 0);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalCenters: 1,
+        totalBookings,
+        pendingBookings,
+        approvedBookings,
+        rejectedBookings,
+        completedBookings,
+        totalRevenue,
+        monthlyRevenue,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getRecentBookings = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const bookings = await Booking.find({
+      center: center._id,
+    })
+      .populate("parent", "name email")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    res.status(200).json({
+      success: true,
+      total: bookings.length,
+      bookings,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getMonthlyRevenue = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    const bookings = await Booking.find({
+      center: center._id,
+      paymentStatus: "Paid",
+    });
+
+    const revenue = Array(12).fill(0);
+
+    bookings.forEach((booking) => {
+      const month = new Date(booking.createdAt).getMonth();
+
+      revenue[month] += booking.amount;
+    });
+
+    res.status(200).json({
+      success: true,
+      revenue: [
+        { month: "Jan", revenue: revenue[0] },
+        { month: "Feb", revenue: revenue[1] },
+        { month: "Mar", revenue: revenue[2] },
+        { month: "Apr", revenue: revenue[3] },
+        { month: "May", revenue: revenue[4] },
+        { month: "Jun", revenue: revenue[5] },
+        { month: "Jul", revenue: revenue[6] },
+        { month: "Aug", revenue: revenue[7] },
+        { month: "Sep", revenue: revenue[8] },
+        { month: "Oct", revenue: revenue[9] },
+        { month: "Nov", revenue: revenue[10] },
+        { month: "Dec", revenue: revenue[11] },
+      ],
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+const getDashboardNotifications = async (req, res) => {
+  try {
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      provider: provider._id,
+    });
+
+    if (!center) {
+      return res.status(404).json({
+        success: false,
+        message: "Center not found",
+      });
+    }
+
+    // Pending bookings
+    const pendingBookings = await Booking.countDocuments({
+      center: center._id,
+      status: "Pending",
+    });
+
+    // Approved but unpaid
+    const unpaidBookings = await Booking.countDocuments({
+      center: center._id,
+      status: "Approved",
+      paymentStatus: "Pending",
+    });
+
+    // Today's bookings
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const todaysBookings = await Booking.countDocuments({
+      center: center._id,
+      bookingDate: {
+        $gte: start,
+        $lte: end,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      notifications: {
+        pendingBookings,
+        unpaidBookings,
+        todaysBookings,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export {
+  createProviderProfile,
+  getProviderProfile,
+  updateProviderProfile,
+  getDashboardNotifications,
+  getProviderDashboard,
+  getDashboardStats,
+  getRecentBookings,
+  getMonthlyRevenue,
+};

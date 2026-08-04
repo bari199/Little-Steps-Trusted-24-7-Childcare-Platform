@@ -1,10 +1,9 @@
 import api from "./api";
 
 // Create Razorpay Order
-export const createOrder = async (bookingId) => {
-  const response = await api.post("/payments/create-order", {
-    bookingId,
-  });
+export const createOrder = async (payload) => {
+  console.log(import.meta.env.VITE_API_URL);
+  const response = await api.post("/payments/create-order", payload);
 
   return response.data;
 };

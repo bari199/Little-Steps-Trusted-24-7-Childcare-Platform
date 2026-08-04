@@ -1,3 +1,4 @@
+import { v2 as cloudinary } from "cloudinary";
 import Caregiver from "../models/Caregiver.js";
 import Center from "../models/Center.js";
 import Provider from "../models/Provider.js";
@@ -5,18 +6,28 @@ import Provider from "../models/Provider.js";
 // ===============================
 // CREATE CAREGIVER (Provider)
 // ===============================
+
 const createCaregiver = async (req, res) => {
   try {
-    const { fullName, qualification, experience, specialization } = req.body;
+    // ===============================
+    // Request Body
+    // ===============================
+    const { center, fullName, qualification, experience, specialization } =
+      req.body;
 
-    if (!fullName || !qualification || experience === undefined) {
+    // ===============================
+    // Validation
+    // ===============================
+    if (!center || !fullName || !qualification || experience === undefined) {
       return res.status(400).json({
         success: false,
         message: "All required fields are mandatory",
       });
     }
 
-    // Find provider profile
+    // ===============================
+    // Find Provider
+    // ===============================
     const provider = await Provider.findOne({
       user: req.user._id,
     });
@@ -28,19 +39,24 @@ const createCaregiver = async (req, res) => {
       });
     }
 
-    // Find provider center
-    const center = await Center.findOne({
+    // ===============================
+    // Find Selected Center
+    // ===============================
+    const selectedCenter = await Center.findOne({
+      _id: center,
       provider: provider._id,
     });
 
-    if (!center) {
+    if (!selectedCenter) {
       return res.status(404).json({
         success: false,
-        message: "Center not found",
+        message: "Selected center not found",
       });
     }
 
-    // Image handling
+    // ===============================
+    // Image
+    // ===============================
     let profileImage = {
       url: "",
       public_id: "",
@@ -53,8 +69,11 @@ const createCaregiver = async (req, res) => {
       };
     }
 
+    // ===============================
+    // Create Caregiver
+    // ===============================
     const caregiver = await Caregiver.create({
-      center: center._id,
+      center: selectedCenter._id,
       fullName,
       qualification,
       experience,
@@ -62,7 +81,7 @@ const createCaregiver = async (req, res) => {
       profileImage,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Caregiver created successfully",
       caregiver,
@@ -70,26 +89,31 @@ const createCaregiver = async (req, res) => {
   } catch (error) {
     console.log("CREATE CAREGIVER ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
-
 // ===============================
 // GET ALL CAREGIVERS (Public)
 // ===============================
 const getCaregivers = async (req, res) => {
   try {
-    const caregivers = await Caregiver.find()
+    const { center } = req.query;
+
+    const filter = {};
+
+    if (center) {
+      filter.center = center;
+    }
+
+    const caregivers = await Caregiver.find(filter)
       .populate({
         path: "center",
         select: "centerName city",
       })
-      .sort({
-        createdAt: -1,
-      });
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -105,19 +129,15 @@ const getCaregivers = async (req, res) => {
     });
   }
 };
-
 // ===============================
 // GET PROVIDER CAREGIVERS
 // ===============================
 const getProviderCaregivers = async (req, res) => {
   try {
-    console.log("AUTH USER:", req.user);
-
+    // Find Provider
     const provider = await Provider.findOne({
       user: req.user._id,
     });
-
-    console.log("PROVIDER:", provider);
 
     if (!provider) {
       return res.status(404).json({
@@ -126,31 +146,40 @@ const getProviderCaregivers = async (req, res) => {
       });
     }
 
-    const center = await Center.findOne({
+    // Find All Centers
+    const centers = await Center.find({
       provider: provider._id,
     });
 
-    console.log("CENTER:", center);
-
-    if (!center) {
+    if (!centers.length) {
       return res.status(404).json({
         success: false,
-        message: "Center not found",
+        message: "No centers found",
       });
     }
 
-    const caregivers = await Caregiver.find({
-      center: center._id,
-    });
+    // Extract Center IDs
+    const centerIds = centers.map((center) => center._id);
 
-    res.status(200).json({
+    // Find Caregivers
+    const caregivers = await Caregiver.find({
+      center: { $in: centerIds },
+    })
+      .populate({
+        path: "center",
+        select: "centerName city",
+      })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
       success: true,
+      total: caregivers.length,
       caregivers,
     });
   } catch (error) {
-    console.log("PROVIDER CAREGIVER ERROR:", error);
+    console.error("GET PROVIDER CAREGIVERS ERROR:", error.message);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -162,6 +191,8 @@ const getProviderCaregivers = async (req, res) => {
 // ===============================
 const getSingleCaregiver = async (req, res) => {
   try {
+    console.log("Requested ID:", req.params.id);
+
     const caregiver = await Caregiver.findById(req.params.id).populate({
       path: "center",
       select: "centerName city",
@@ -174,14 +205,14 @@ const getSingleCaregiver = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       caregiver,
     });
   } catch (error) {
-    console.log("GET SINGLE CAREGIVER ERROR:", error);
+    console.log(error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -207,6 +238,10 @@ const updateCaregiver = async (req, res) => {
     };
 
     if (req.file) {
+      if (caregiver.profileImage?.public_id) {
+        await cloudinary.uploader.destroy(caregiver.profileImage.public_id);
+      }
+
       updatedData.profileImage = {
         url: req.file.path,
         public_id: req.file.filename,
@@ -240,9 +275,16 @@ const updateCaregiver = async (req, res) => {
 // ===============================
 // DELETE CAREGIVER
 // ===============================
+
+// ===============================
+// DELETE CAREGIVER
+// ===============================
 const deleteCaregiver = async (req, res) => {
   try {
-    const caregiver = await Caregiver.findById(req.params.id);
+    const { id } = req.params;
+
+    // Find Caregiver
+    const caregiver = await Caregiver.findById(id);
 
     if (!caregiver) {
       return res.status(404).json({
@@ -251,22 +293,28 @@ const deleteCaregiver = async (req, res) => {
       });
     }
 
+    // Delete Image from Cloudinary (if exists)
+    if (caregiver.profileImage?.public_id) {
+      await cloudinary.uploader.destroy(caregiver.profileImage.public_id);
+    }
+
+    // Delete Caregiver
     await caregiver.deleteOne();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Caregiver deleted successfully",
     });
   } catch (error) {
-    console.log("DELETE CAREGIVER ERROR:", error);
+    console.error("DELETE CAREGIVER ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to delete caregiver",
+      error: error.message,
     });
   }
 };
-
 export {
   createCaregiver,
   getCaregivers,

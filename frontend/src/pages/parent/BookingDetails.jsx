@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
-import { getBookingDetails } from "@/services/bookingService";
+import { getBookingDetails } from "../../services/bookingService";
 
 import BookingInfo from "@/components/parent/booking/BookingInfo";
 import BookingActions from "@/components/parent/booking/BookingActions";
 
 const BookingDetails = () => {
   const { id } = useParams();
-
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
 
