@@ -1,10 +1,10 @@
 import { UserCheck, Users, CalendarCheck, Sparkles } from "lucide-react";
 
-import Reveal from "./Reveal";
-import Eyebrow from "./Eyebrow";
-import { useTheme } from "./ThemeContext";
+import Reveal from "../common/Reveal";
+import Eyebrow from "../common/Eyebrow";
+import { useTheme } from "../../context/ThemeContext";
 
-import { brand } from "./theme";
+import { brand } from "../../components/data/theme";
 
 export default function HowItWorks() {
   const { colors } = useTheme();

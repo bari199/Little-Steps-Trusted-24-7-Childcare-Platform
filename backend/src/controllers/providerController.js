@@ -264,23 +264,13 @@ const getRecentBookings = async (req, res) => {
       user: req.user._id,
     });
 
-    if (!provider) {
-      return res.status(404).json({
-        success: false,
-        message: "Provider not found",
-      });
-    }
+    console.log("Provider:", provider);
 
     const center = await Center.findOne({
       provider: provider._id,
     });
 
-    if (!center) {
-      return res.status(404).json({
-        success: false,
-        message: "Center not found",
-      });
-    }
+    console.log("Center:", center);
 
     const bookings = await Booking.find({
       center: center._id,
@@ -289,12 +279,16 @@ const getRecentBookings = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5);
 
+    console.log("Bookings:", bookings);
+
     res.status(200).json({
       success: true,
       total: bookings.length,
       bookings,
     });
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       success: false,
       message: error.message,

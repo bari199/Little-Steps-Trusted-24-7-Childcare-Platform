@@ -1,18 +1,40 @@
 import { Outlet } from "react-router-dom";
+
 import ProviderSidebar from "./ProviderSidebar";
 import ProviderHeader from "./ProviderHeader";
 
+import { useTheme } from "../../context/ThemeContext";
+
 const ProviderLayout = () => {
+  const { colors } = useTheme();
+
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <ProviderSidebar />
+    <div
+      className="min-h-screen transition-colors duration-300"
+      style={{
+        backgroundColor: colors.bg,
+        color: colors.text,
+      }}
+    >
+      <div className="flex min-h-screen">
+        {/* Sidebar */}
+        <ProviderSidebar />
 
-      <div className="flex flex-1 flex-col">
-        <ProviderHeader />
+        {/* Main Content */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <ProviderHeader />
 
-        <main className="flex-1 p-6">
-          <Outlet />
-        </main>
+          <main
+            className="flex-1 overflow-x-hidden p-4 sm:p-6 lg:p-8"
+            style={{
+              backgroundColor: colors.bg,
+            }}
+          >
+            <div className="mx-auto w-full max-w-7xl">
+              <Outlet />
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   );

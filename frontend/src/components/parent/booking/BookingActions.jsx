@@ -4,15 +4,11 @@ const BookingActions = ({ booking }) => {
   const canPay =
     booking.status === "Approved" && booking.paymentStatus === "Pending";
 
+  if (!canPay) return null;
+
   return (
     <div className="flex gap-3">
-      {canPay && (
-        <RazorpayButton
-          payload={{
-            bookingId: booking._id,
-          }}
-        />
-      )}
+      <RazorpayButton payload={{ bookingId: booking._id }} />
     </div>
   );
 };

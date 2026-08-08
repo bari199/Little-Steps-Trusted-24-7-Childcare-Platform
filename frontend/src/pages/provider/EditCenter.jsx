@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { ArrowLeft, Save } from "lucide-react";
+
+import Loading from "../../components/common/Loading";
 
 import { getMyCenters, updateCenter } from "../../services/centerService";
 
@@ -9,13 +13,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useTheme } from "../../context/ThemeContext";
 
 const EditCenter = () => {
   const navigate = useNavigate();
+  const { colors } = useTheme();
 
   const [center, setCenter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState([]);
+  const [previews, setPreviews] = useState([]);
 
   const {
     register,
@@ -29,7 +36,13 @@ const EditCenter = () => {
       setLoading(true);
 
       const response = await getMyCenters();
-      const centerData = response.centers[0];
+      const centerData = response.centers?.[0];
+
+      if (!centerData) {
+        toast.error("Center not found.");
+        navigate("/provider/center");
+        return;
+      }
 
       setCenter(centerData);
 
@@ -43,11 +56,10 @@ const EditCenter = () => {
         ageGroup: centerData.ageGroup,
         capacity: centerData.capacity,
         monthlyFee: centerData.monthlyFee,
+        pricePerDay: centerData.pricePerDay,
         openingTime: centerData.openingTime,
         closingTime: centerData.closingTime,
         is24Hours: centerData.is24Hours,
-        latitude: centerData.location?.latitude,
-        longitude: centerData.location?.longitude,
         facilities: centerData.facilities?.join(", "),
       });
     } catch (error) {
@@ -55,40 +67,54 @@ const EditCenter = () => {
     } finally {
       setLoading(false);
     }
-  }, [reset]);
+  }, [navigate, reset]);
 
   useEffect(() => {
     fetchCenter();
   }, [fetchCenter]);
 
-  const handleImageChange = (e) => {
-    setImages(Array.from(e.target.files));
+  useEffect(() => {
+    const urls = images.map((image) => URL.createObjectURL(image));
+
+    setPreviews(urls);
+
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [images]);
+
+  const handleImageChange = (event) => {
+    setImages(Array.from(event.target.files || []));
   };
 
   const onSubmit = async (data) => {
     try {
       const formData = new FormData();
 
-      if (data.facilities) {
-        data.facilities = JSON.stringify(
+      const payload = {
+        ...data,
+        capacity: Number(data.capacity),
+        monthlyFee: Number(data.monthlyFee),
+        pricePerDay: Number(data.pricePerDay),
+        facilities: JSON.stringify(
           data.facilities
-            .split(",")
+            ?.split(",")
             .map((item) => item.trim())
-            .filter(Boolean),
-        );
-      }
+            .filter(Boolean) || [],
+        ),
+      };
 
-      Object.entries(data).forEach(([key, value]) => {
+      Object.entries(payload).forEach(([key, value]) => {
         formData.append(key, value);
       });
 
-      images.forEach((img) => {
-        formData.append("centerImages", img);
+      images.forEach((image) => {
+        formData.append("centerImages", image);
       });
 
       const response = await updateCenter(center._id, formData);
 
-      toast.success(response.message);
+      toast.success(response.message || "Center updated successfully.");
 
       navigate("/provider/center");
     } catch (error) {
@@ -96,45 +122,73 @@ const EditCenter = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-80 items-center justify-center">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
-  }
+  if (loading) return <Loading />;
 
   return (
-    <div className="mx-auto max-w-6xl rounded-2xl border bg-white p-8 shadow">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Update Childcare Center</h1>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-8"
+    >
+      {/* Header */}
 
-        <p className="mt-2 text-muted-foreground">
-          Edit your childcare center details.
-        </p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1
+            className="text-3xl font-bold"
+            style={{
+              color: colors.text,
+              fontFamily: "Fraunces, serif",
+            }}
+          >
+            Edit Childcare Center
+          </h1>
+
+          <p style={{ color: colors.textMuted }}>
+            Update your childcare center information.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/provider/center")}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+
+          <Button type="submit" form="edit-center-form" disabled={isSubmitting}>
+            <Save className="mr-2 h-4 w-4" />
+            {isSubmitting ? "Updating..." : "Save Changes"}
+          </Button>
+        </div>
       </div>
 
       <form
+        id="edit-center-form"
         onSubmit={handleSubmit(onSubmit)}
-        className="grid gap-6 md:grid-cols-2"
+        className="grid gap-6 rounded-2xl border p-8"
+        style={{
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        }}
       >
         <div>
           <Label>Center Name</Label>
-          <Input
-            {...register("centerName", {
-              required: "Center name is required",
-            })}
-          />
-          {errors.centerName && (
-            <p className="mt-1 text-sm text-red-500">
-              {errors.centerName.message}
-            </p>
-          )}
+          <Input {...register("centerName")} />
         </div>
 
         <div>
           <Label>Monthly Fee</Label>
           <Input type="number" {...register("monthlyFee")} />
+        </div>
+
+        <div>
+          <Label>Price Per Day</Label>
+          <Input type="number" {...register("pricePerDay")} />
         </div>
 
         <div>
@@ -167,16 +221,25 @@ const EditCenter = () => {
           <Input {...register("state")} />
         </div>
 
+        <div>
+          <Label>Pincode</Label>
+          <Input {...register("pincode")} />
+        </div>
+
         <div className="md:col-span-2">
           <Label>Address</Label>
           <Textarea rows={3} {...register("address")} />
         </div>
 
         <div className="md:col-span-2">
-          <Label>Facilities</Label>
+          <Label>Description</Label>
+          <Textarea rows={5} {...register("description")} />
+        </div>
 
+        <div className="md:col-span-2">
+          <Label>Facilities</Label>
           <Input
-            placeholder="CCTV, Playground, Meals"
+            placeholder="CCTV, Meals, Playground"
             {...register("facilities")}
           />
         </div>
@@ -188,7 +251,7 @@ const EditCenter = () => {
             {...register("is24Hours")}
           />
 
-          <Label>24 Hours Available</Label>
+          <Label>Open 24 Hours</Label>
         </div>
 
         {/* Existing Images */}
@@ -196,13 +259,14 @@ const EditCenter = () => {
         <div className="md:col-span-2">
           <Label className="mb-3 block">Current Images</Label>
 
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {center.centerImages?.map((image) => (
               <img
                 key={image.public_id}
                 src={image.url}
                 alt=""
-                className="h-36 w-full rounded-xl border object-cover"
+                className="h-40 w-full rounded-xl border object-cover"
+                style={{ borderColor: colors.border }}
               />
             ))}
           </div>
@@ -215,34 +279,27 @@ const EditCenter = () => {
 
           <Input
             type="file"
-            multiple
             accept="image/*"
+            multiple
             onChange={handleImageChange}
           />
 
-          {images.length > 0 && (
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-              {images.map((image, index) => (
+          {previews.length > 0 && (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {previews.map((preview, index) => (
                 <img
                   key={index}
-                  src={URL.createObjectURL(image)}
+                  src={preview}
                   alt=""
-                  className="h-36 w-full rounded-xl border object-cover"
+                  className="h-40 w-full rounded-xl border object-cover"
+                  style={{ borderColor: colors.border }}
                 />
               ))}
             </div>
           )}
         </div>
-
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full md:col-span-2"
-        >
-          {isSubmitting ? "Updating..." : "Update Center"}
-        </Button>
       </form>
-    </div>
+    </motion.div>
   );
 };
 

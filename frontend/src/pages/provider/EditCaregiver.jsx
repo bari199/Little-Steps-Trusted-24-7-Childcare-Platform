@@ -1,22 +1,29 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import { motion } from "framer-motion";
+import { UserRoundPen, Upload } from "lucide-react";
 import { toast } from "sonner";
 
-import Loading from "../../components/common/Loading";
+import Loading from "@/components/common/Loading";
+import Button from "@/components/common/Button";
+import Reveal from "@/components/common/Reveal";
+import Eyebrow from "@/components/common/Eyebrow";
 
 import {
   getCaregiverDetails,
   updateCaregiver,
-} from "../../services/caregiverService";
+} from "@/services/caregiverService";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+import { useTheme } from "../../context/ThemeContext";
 
 const EditCaregiver = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { colors } = useTheme();
 
   const [loading, setLoading] = useState(true);
   const [image, setImage] = useState(null);
@@ -52,9 +59,11 @@ const EditCaregiver = () => {
     }
   };
 
-  const handleImageChange = (e) => {
-    if (e.target.files?.length) {
-      setImage(e.target.files[0]);
+  const handleImageChange = (event) => {
+    const selectedImage = event.target.files?.[0];
+
+    if (selectedImage) {
+      setImage(selectedImage);
     }
   };
 
@@ -89,80 +98,217 @@ const EditCaregiver = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="mb-8 text-3xl font-bold">Edit Caregiver</h1>
+    <div className="space-y-8">
+      <Reveal>
+        <div
+          className="overflow-hidden rounded-[30px] border p-8 lg:p-10"
+          style={{
+            background: "linear-gradient(135deg,#FF9500 0%,#FFC300 100%)",
+            borderColor: "#FFB000",
+          }}
+        >
+          <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
+            <div>
+              <Eyebrow>Edit Caregiver</Eyebrow>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="fullName">Full Name</Label>
+              <h1 className="max-w-2xl text-4xl font-extrabold leading-tight text-[#241C0F]">
+                Update Caregiver Information
+              </h1>
 
-          <Input
-            id="fullName"
-            {...register("fullName", {
-              required: "Full name is required",
-            })}
-          />
+              <p className="mt-4 max-w-xl text-[15px] text-[#4D3C16]">
+                Keep caregiver details accurate by updating qualifications,
+                availability and profile information.
+              </p>
+            </div>
 
-          {errors.fullName && (
-            <p className="text-sm text-red-500">{errors.fullName.message}</p>
-          )}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="rounded-3xl bg-white/90 p-6"
+            >
+              <UserRoundPen className="h-12 w-12 text-orange-500" />
+
+              <p className="mt-4 font-semibold text-[#241C0F]">
+                Caregiver Profile
+              </p>
+            </motion.div>
+          </div>
         </div>
+      </Reveal>
 
-        <div className="space-y-2">
-          <Label htmlFor="qualification">Qualification</Label>
+      <Reveal delay={0.1}>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="rounded-[30px] border p-8"
+          style={{
+            background: colors.surface,
+            borderColor: colors.border,
+          }}
+        >
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Full Name */}
 
-          <Input
-            id="qualification"
-            {...register("qualification", {
-              required: "Qualification is required",
-            })}
-          />
-        </div>
+            <div className="space-y-2">
+              <Label>Full Name</Label>
 
-        <div className="space-y-2">
-          <Label htmlFor="experience">Experience (Years)</Label>
+              <Input
+                placeholder="Enter caregiver name"
+                {...register("fullName", {
+                  required: "Full name is required",
+                })}
+                style={{
+                  background: colors.surfaceAlt,
+                  borderColor: colors.border,
+                  color: colors.text,
+                }}
+              />
 
-          <Input
-            id="experience"
-            type="number"
-            min="0"
-            {...register("experience", {
-              required: "Experience is required",
-            })}
-          />
-        </div>
+              {errors.fullName && (
+                <p className="text-sm text-red-500">
+                  {errors.fullName.message}
+                </p>
+              )}
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="specialization">Specialization</Label>
+            {/* Qualification */}
 
-          <Input id="specialization" {...register("specialization")} />
-        </div>
+            <div className="space-y-2">
+              <Label>Qualification</Label>
 
-        <div className="flex items-center gap-3">
-          <input
-            id="isAvailable"
-            type="checkbox"
-            {...register("isAvailable")}
-          />
+              <Input
+                placeholder="Child Care Diploma"
+                {...register("qualification", {
+                  required: "Qualification is required",
+                })}
+                style={{
+                  background: colors.surfaceAlt,
+                  borderColor: colors.border,
+                  color: colors.text,
+                }}
+              />
 
-          <Label htmlFor="isAvailable">Available for duty</Label>
-        </div>
+              {errors.qualification && (
+                <p className="text-sm text-red-500">
+                  {errors.qualification.message}
+                </p>
+              )}
+            </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="profileImage">Profile Image</Label>
+            {/* Experience */}
 
-          <Input
-            id="profileImage"
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-          />
-        </div>
+            <div className="space-y-2">
+              <Label>Experience</Label>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Updating..." : "Update Caregiver"}
-        </Button>
-      </form>
+              <Input
+                type="number"
+                min={0}
+                placeholder="5"
+                {...register("experience", {
+                  required: "Experience is required",
+                })}
+                style={{
+                  background: colors.surfaceAlt,
+                  borderColor: colors.border,
+                  color: colors.text,
+                }}
+              />
+
+              {errors.experience && (
+                <p className="text-sm text-red-500">
+                  {errors.experience.message}
+                </p>
+              )}
+            </div>
+
+            {/* Specialization */}
+
+            <div className="space-y-2">
+              <Label>Specialization</Label>
+
+              <Input
+                placeholder="Infant Care"
+                {...register("specialization")}
+                style={{
+                  background: colors.surfaceAlt,
+                  borderColor: colors.border,
+                  color: colors.text,
+                }}
+              />
+            </div>
+            {/* Availability */}
+
+            <div className="flex items-center gap-3 md:col-span-2">
+              <input
+                id="isAvailable"
+                type="checkbox"
+                className="h-5 w-5 accent-orange-500"
+                {...register("isAvailable")}
+              />
+
+              <Label htmlFor="isAvailable">Available for Duty</Label>
+            </div>
+
+            {/* Profile Image */}
+
+            <div className="space-y-3 md:col-span-2">
+              <Label>Profile Image</Label>
+
+              <div
+                className="rounded-2xl border-2 border-dashed p-8 text-center"
+                style={{
+                  borderColor: colors.border,
+                  background: colors.surfaceAlt,
+                }}
+              >
+                <Upload
+                  className="mx-auto mb-4 h-10 w-10"
+                  style={{ color: "#FF9500" }}
+                />
+
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
+
+                <p
+                  className="mt-3 text-sm"
+                  style={{
+                    color: colors.textMuted,
+                  }}
+                >
+                  Upload a new caregiver profile photo (optional).
+                </p>
+
+                {image && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-6 inline-block overflow-hidden rounded-2xl border"
+                    style={{
+                      borderColor: colors.border,
+                    }}
+                  >
+                    <img
+                      src={URL.createObjectURL(image)}
+                      alt="Preview"
+                      className="h-44 w-44 object-cover"
+                    />
+                  </motion.div>
+                )}
+              </div>
+            </div>
+
+            {/* Submit */}
+
+            <div className="md:col-span-2 pt-2">
+              <Button type="submit" loading={isSubmitting} className="w-full">
+                {isSubmitting ? "Updating Caregiver..." : "Update Caregiver"}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Reveal>
     </div>
   );
 };

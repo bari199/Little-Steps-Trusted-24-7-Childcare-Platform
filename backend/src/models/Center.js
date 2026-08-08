@@ -7,6 +7,7 @@ const centerSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Provider",
       required: true,
+      unique: true,
     },
 
     centerName: {

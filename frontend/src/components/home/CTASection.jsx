@@ -1,16 +1,22 @@
 import { Phone, ArrowRight } from "lucide-react";
-
-import Reveal from "./Reveal";
-import { brand } from "./theme";
+import Reveal from "../common/Reveal";
+import { useTheme } from "../../context/ThemeContext";
+import { brand } from "../../components/data/theme";
 
 export default function CTASection() {
+  const { colors } = useTheme();
   return (
-    <section id="cta" className="py-20 px-5 sm:px-8">
+    <section
+      id="cta"
+      className="py-20 px-5 sm:px-8"
+      style={{ backgroundColor: colors.bg }}
+    >
       <Reveal>
         <div
           className="max-w-6xl mx-auto rounded-[2rem] p-10 sm:p-16 text-center relative overflow-hidden"
           style={{
             backgroundImage: `linear-gradient(120deg, ${brand[500]}, ${brand[300]} 60%, ${brand[100]})`,
+            backgroundColor: colors.bg,
           }}
         >
           <h2

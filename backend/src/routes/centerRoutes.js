@@ -70,7 +70,14 @@ router.get(
 
 router.get("/:id", authMiddleware, roleMiddleware("provider"), getCenterById);
 
+router.delete("/:id", authMiddleware, roleMiddleware("provider"), deleteCenter);
+
 /* Admin */
-router.delete("/:id", authMiddleware, roleMiddleware("admin"), deleteCenter);
+router.delete(
+  "/admin/:id",
+  authMiddleware,
+  roleMiddleware("admin"),
+  deleteCenter,
+);
 
 export default router;

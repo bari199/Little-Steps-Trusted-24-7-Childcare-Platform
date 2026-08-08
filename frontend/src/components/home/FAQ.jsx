@@ -1,7 +1,7 @@
-import Reveal from "./Reveal";
-import Eyebrow from "./Eyebrow";
+import Reveal from "../common/Reveal";
+import Eyebrow from "../common/Eyebrow";
 import FAQItem from "./FAQItem";
-import { useTheme } from "./ThemeContext";
+import { useTheme } from "../../context/ThemeContext";
 
 export default function FAQ() {
   const { colors } = useTheme();

@@ -3,8 +3,7 @@ import RegisterForm from "../../components/auth/RegisterForm";
 
 const Register = () => {
   return (
-    <AuthLayout title="Create Account" subtitle="Register to get started">
-      <h2>Register Form</h2>
+    <AuthLayout title="Create account" subtitle="Register to get started">
       <RegisterForm />
     </AuthLayout>
   );

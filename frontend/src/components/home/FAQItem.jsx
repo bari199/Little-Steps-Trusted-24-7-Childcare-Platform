@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-import { brand } from "./theme";
+import { brand } from "../../components/data/theme";
 
 export default function FAQItem({ q, a, colors }) {
   const [open, setOpen] = useState(false);

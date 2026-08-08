@@ -63,7 +63,6 @@ export const updateCenter = async (id, formData) => {
 // DELETE CENTER (Optional)
 // ===============================
 export const deleteCenter = async (id) => {
-  const { data } = await api.delete(`/centers/${id}`);
-
-  return data;
+  const response = await api.delete(`/centers/${id}`);
+  return response.data;
 };

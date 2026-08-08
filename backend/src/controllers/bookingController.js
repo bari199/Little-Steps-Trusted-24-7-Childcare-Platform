@@ -214,9 +214,18 @@ const getMyBookings = async (req, res) => {
 };
 const getProviderBookings = async (req, res) => {
   try {
+    console.log("========== getProviderBookings CONTROLLER HIT ==========");
+
+    console.log("\n========== GET PROVIDER BOOKINGS ==========");
+
+    console.log("Logged In User ID:", req.user._id.toString());
+
+    // Find Provider
     const provider = await Provider.findOne({
       user: req.user._id,
     });
+
+    console.log("Provider Document:", provider);
 
     if (!provider) {
       return res.status(404).json({
@@ -225,9 +234,14 @@ const getProviderBookings = async (req, res) => {
       });
     }
 
+    console.log("Provider ID:", provider._id.toString());
+
+    // Find Center
     const center = await Center.findOne({
       provider: provider._id,
     });
+
+    console.log("Center Document:", center);
 
     if (!center) {
       return res.status(404).json({
@@ -236,11 +250,43 @@ const getProviderBookings = async (req, res) => {
       });
     }
 
+    console.log("Center ID:", center._id.toString());
+
+    // Raw Booking Count
+    const bookingCount = await Booking.countDocuments({
+      center: center._id,
+    });
+
+    console.log("Total Bookings For Center:", bookingCount);
+
+    // Raw Bookings
+    const rawBookings = await Booking.find({
+      center: center._id,
+    });
+
+    console.log("\n========== RAW BOOKINGS ==========");
+
+    rawBookings.forEach((booking, index) => {
+      console.log({
+        serial: index + 1,
+        bookingId: booking._id.toString(),
+        center: booking.center.toString(),
+        parent: booking.parent.toString(),
+        child: booking.childName,
+        createdAt: booking.createdAt,
+      });
+    });
+
+    console.log("==================================");
+
+    // Populate
     const bookings = await Booking.find({
       center: center._id,
     })
       .populate("parent", "name email")
       .sort({ createdAt: -1 });
+
+    console.log("Returned Bookings:", bookings.length);
 
     res.status(200).json({
       success: true,
@@ -248,6 +294,9 @@ const getProviderBookings = async (req, res) => {
       bookings,
     });
   } catch (error) {
+    console.error("GET PROVIDER BOOKINGS ERROR");
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: error.message,

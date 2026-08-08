@@ -8,7 +8,7 @@ import {
 import { HiOutlineMail } from "react-icons/hi";
 
 import LogoMark from "./LogoMark";
-import { brand } from "./theme";
+import { brand } from "../../components/data/theme";
 
 export default function Footer() {
   const cols = [

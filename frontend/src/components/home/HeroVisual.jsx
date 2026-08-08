@@ -1,7 +1,7 @@
 import { ShieldCheck, Star } from "lucide-react";
 
-import { useTheme } from "./ThemeContext";
-import { brand } from "./theme";
+import { useTheme } from "../../context/ThemeContext";
+import { brand } from "../data/theme";
 
 export default function HeroVisual() {
   const { colors } = useTheme();

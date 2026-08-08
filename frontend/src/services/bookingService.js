@@ -25,8 +25,9 @@ export const cancelBooking = async (id) => {
 };
 
 export const getProviderBookings = async () => {
+  console.log("Calling API: /bookings/provider");
   const response = await api.get("/bookings/provider");
-
+  console.log(response.data);
   return response.data;
 };
 

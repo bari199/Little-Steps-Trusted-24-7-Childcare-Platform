@@ -1,17 +1,19 @@
 import { Outlet } from "react-router-dom";
-
+import Navbar from "../common/Navbar";
 import ParentSidebar from "./ParentSidebar";
-import ParentNavbar from "./ParentNavbar";
+import { useTheme } from "../../context/ThemeContext";
+import { brand } from "../../components/data/theme";
 
 const ParentLayout = () => {
+  const { colors } = useTheme();
   return (
-    <div className="flex min-h-screen bg-muted/30">
+    <div className="flex min-h-screen" style={{ backgroundColor: colors.bg }}>
       <ParentSidebar />
 
       <div className="flex flex-1 flex-col">
-        <ParentNavbar />
+        <Navbar />
 
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6" style={{ backgroundColor: colors.bg }}>
           <Outlet />
         </main>
       </div>

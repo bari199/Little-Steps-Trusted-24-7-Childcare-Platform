@@ -1,5 +1,11 @@
 import api from "./api";
 
+export const getProviderProfile = async () => {
+  const response = await api.get("/providers/profile");
+
+  return response.data;
+};
+
 // Provider Bookings
 export const getProviderBookings = async () => {
   const response = await api.get("/bookings/provider");
@@ -27,7 +33,6 @@ export const updateCenter = async (id, formData) => {
 
   return response.data;
 };
-console.log("API URL =", import.meta.env.VITE_API_URL);
 export const getDashboardStats = async () => {
   console.log("Calling dashboard stats...");
 

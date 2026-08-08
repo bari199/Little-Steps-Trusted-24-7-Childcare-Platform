@@ -1,12 +1,12 @@
 import { ArrowRight, PlayCircle } from "lucide-react";
 
-import { useTheme } from "./ThemeContext";
-import { brand } from "./theme";
+import { useTheme } from "../../context/ThemeContext";
+import { brand } from "../../components/data/theme";
 
-import Reveal from "./Reveal";
-import Button from "./Button";
+import Reveal from "../common/Reveal";
+import Button from "../common/Button";
 import HeroVisual from "./HeroVisual";
-import SunArc from "./SunArc";
+import SunArc from "../common/SunArc";
 
 export default function HeroSection() {
   const { colors } = useTheme();

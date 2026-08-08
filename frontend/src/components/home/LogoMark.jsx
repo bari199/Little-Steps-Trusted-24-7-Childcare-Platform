@@ -1,4 +1,4 @@
-import { brand } from "./theme";
+import { brand } from "../../components/data/theme";
 
 export default function LogoMark() {
   return (

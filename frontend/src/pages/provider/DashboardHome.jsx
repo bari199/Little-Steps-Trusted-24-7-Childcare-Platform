@@ -1,176 +1,26 @@
-// import { useCallback, useEffect, useState } from "react";
-
-// import {
-//   getProviderBookings,
-//   getMyCenter,
-// } from "../../services/providerService";
-
-// const DashboardHome = () => {
-//   const [bookings, setBookings] = useState([]);
-//   const [center, setCenter] = useState(null);
-//   const [loading, setLoading] = useState(true);
-
-//   const fetchDashboard = useCallback(async () => {
-//     try {
-//       setLoading(true);
-
-//       const [bookingRes, centerRes] = await Promise.all([
-//         getProviderBookings(),
-//         getMyCenter(),
-//       ]);
-
-//       setBookings(bookingRes.bookings || []);
-//       setCenter(centerRes.center || null);
-//     } catch (error) {
-//       console.error(error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, []);
-
-//   useEffect(() => {
-//     fetchDashboard();
-//   }, [fetchDashboard]);
-
-//   if (loading) {
-//     return (
-//       <div className="flex justify-center py-10">
-//         <span className="loading loading-spinner loading-lg"></span>
-//       </div>
-//     );
-//   }
-
-//   const totalBookings = bookings.length;
-
-//   const pendingBookings = bookings.filter(
-//     ({ status }) => status === "Pending",
-//   ).length;
-
-//   const approvedBookings = bookings.filter(
-//     ({ status }) => status === "Approved",
-//   ).length;
-
-//   const rejectedBookings = bookings.filter(
-//     ({ status }) => status === "Rejected",
-//   ).length;
-
-//   const recentBookings = bookings.slice(0, 5);
-
-//   return (
-//     <div className="space-y-8">
-//       {/* Stats */}
-//       <div className="grid gap-5 md:grid-cols-4">
-//         <div className="rounded-xl bg-white p-5 shadow">
-//           <h3 className="text-sm text-gray-500">Total Bookings</h3>
-//           <p className="mt-2 text-3xl font-bold">{totalBookings}</p>
-//         </div>
-
-//         <div className="rounded-xl bg-white p-5 shadow">
-//           <h3 className="text-sm text-gray-500">Pending</h3>
-//           <p className="mt-2 text-3xl font-bold text-warning">
-//             {pendingBookings}
-//           </p>
-//         </div>
-
-//         <div className="rounded-xl bg-white p-5 shadow">
-//           <h3 className="text-sm text-gray-500">Approved</h3>
-//           <p className="mt-2 text-3xl font-bold text-success">
-//             {approvedBookings}
-//           </p>
-//         </div>
-
-//         <div className="rounded-xl bg-white p-5 shadow">
-//           <h3 className="text-sm text-gray-500">Rejected</h3>
-//           <p className="mt-2 text-3xl font-bold text-error">
-//             {rejectedBookings}
-//           </p>
-//         </div>
-//       </div>
-
-//       {/* Center Information */}
-//       {center && (
-//         <div className="rounded-xl bg-white p-6 shadow">
-//           <h2 className="mb-4 text-xl font-semibold">Center Information</h2>
-
-//           <div className="grid gap-4 md:grid-cols-2">
-//             <div>
-//               <span className="font-medium">Center:</span> {center.centerName}
-//             </div>
-
-//             <div>
-//               <span className="font-medium">City:</span> {center.city}
-//             </div>
-
-//             <div>
-//               <span className="font-medium">Monthly Fee:</span> ₹
-//               {center.monthlyFee}
-//             </div>
-
-//             <div>
-//               <span className="font-medium">Capacity:</span> {center.capacity}
-//             </div>
-
-//             <div>
-//               <span className="font-medium">Status:</span> {center.status}
-//             </div>
-//           </div>
-//         </div>
-//       )}
-
-//       {/* Recent Bookings */}
-//       <div className="overflow-x-auto rounded-xl bg-white shadow">
-//         <table className="table">
-//           <thead>
-//             <tr>
-//               <th>Child</th>
-//               <th>Date</th>
-//               <th>Status</th>
-//               <th>Plan</th>
-//             </tr>
-//           </thead>
-
-//           <tbody>
-//             {recentBookings.length ? (
-//               recentBookings.map((booking) => (
-//                 <tr key={booking._id}>
-//                   <td>{booking.childName}</td>
-
-//                   <td>{new Date(booking.bookingDate).toLocaleDateString()}</td>
-
-//                   <td>{booking.status}</td>
-
-//                   <td>{booking.planType}</td>
-//                 </tr>
-//               ))
-//             ) : (
-//               <tr>
-//                 <td colSpan={4} className="py-8 text-center">
-//                   No bookings found.
-//                 </td>
-//               </tr>
-//             )}
-//           </tbody>
-//         </table>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default DashboardHome;
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Users,
   CalendarCheck,
   Clock3,
   CheckCircle,
   IndianRupee,
+  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import Loading from "@/components/common/Loading";
+import Button from "@/components/common/Button";
+import Reveal from "@/components/common/Reveal";
+import Eyebrow from "@/components/common/Eyebrow";
+
+import { useTheme } from "../../context/ThemeContext";
+
 import { getDashboardStats } from "@/services/providerService";
 
 const DashboardHome = () => {
+  const { colors } = useTheme();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -223,51 +73,372 @@ const DashboardHome = () => {
   ];
 
   return (
-    <div className="space-y-8">
-      {/* Heading */}
+    <div className="space-y-10">
+      <Reveal>
+        <div
+          className="overflow-hidden rounded-[30px] border p-8 lg:p-10"
+          style={{
+            background: "linear-gradient(135deg,#FF9500 0%,#FFC300 100%)",
+            borderColor: "#FFB000",
+          }}
+        >
+          <div className="flex flex-col justify-between gap-8 lg:flex-row">
+            <div>
+              <Eyebrow>Provider Dashboard</Eyebrow>
 
-      <div>
-        <h1 className="text-3xl font-bold">Provider Dashboard</h1>
+              <h1 className="max-w-2xl text-4xl font-extrabold leading-tight text-[#241C0F]">
+                Welcome back,
+                <span className="ml-2">let's grow your childcare center.</span>
+              </h1>
 
-        <p className="text-muted-foreground mt-2">
-          Monitor your childcare center activities.
-        </p>
-      </div>
+              <p className="mt-4 max-w-xl text-[15px] text-[#4D3C16]">
+                Monitor bookings, caregivers, revenue and center performance
+                from one beautiful dashboard.
+              </p>
+
+              <div className="mt-8">
+                <Button icon={ArrowUpRight}>View Bookings</Button>
+              </div>
+            </div>
+
+            <motion.div
+              initial={{
+                opacity: 0,
+                x: 25,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+              }}
+              className="grid w-full max-w-md grid-cols-2 gap-4"
+            >
+              <div className="rounded-3xl bg-white/90 p-5">
+                <p className="text-sm text-gray-500">Revenue</p>
+
+                <h2 className="mt-2 text-3xl font-bold text-[#241C0F]">
+                  ₹{stats?.monthlyRevenue ?? 0}
+                </h2>
+              </div>
+
+              <div className="rounded-3xl bg-white/90 p-5">
+                <p className="text-sm text-gray-500">Bookings</p>
+
+                <h2 className="mt-2 text-3xl font-bold text-[#241C0F]">
+                  {stats?.totalBookings ?? 0}
+                </h2>
+              </div>
+
+              <div className="rounded-3xl bg-white/90 p-5">
+                <p className="text-sm text-gray-500">Caregivers</p>
+
+                <h2 className="mt-2 text-3xl font-bold text-[#241C0F]">
+                  {stats?.totalCaregivers ?? 0}
+                </h2>
+              </div>
+
+              <div className="rounded-3xl bg-white/90 p-5">
+                <p className="text-sm text-gray-500">Completed</p>
+
+                <h2 className="mt-2 text-3xl font-bold text-[#241C0F]">
+                  {stats?.completedBookings ?? 0}
+                </h2>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </Reveal>
 
       {/* Stats */}
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
-        {cards.map(({ title, value, icon: Icon }) => (
-          <div key={title} className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-sm">{title}</span>
+      <Reveal delay={0.1}>
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+          {cards.map(({ title, value, icon: Icon }) => (
+            <motion.div
+              whileHover={{
+                y: -5,
+              }}
+              key={title}
+              className="rounded-3xl border p-6 transition-all"
+              style={{
+                background: colors.surface,
+                borderColor: colors.border,
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p
+                    className="text-sm"
+                    style={{
+                      color: colors.textMuted,
+                    }}
+                  >
+                    {title}
+                  </p>
 
-              <Icon className="h-5 w-5 text-primary" />
-            </div>
+                  <h2
+                    className="mt-3 text-4xl font-bold"
+                    style={{
+                      color: colors.text,
+                    }}
+                  >
+                    {value}
+                  </h2>
+                </div>
 
-            <h2 className="mt-4 text-3xl font-bold">{value}</h2>
-          </div>
-        ))}
-      </div>
+                <div className="rounded-2xl bg-orange-100 p-3">
+                  <Icon className="h-6 w-6 text-orange-500" />
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </Reveal>
 
       {/* Summary */}
 
-      <div className="rounded-xl border bg-card p-6">
-        <h2 className="mb-4 text-xl font-semibold">Center Summary</h2>
+      <h2 className="mb-4 text-xl font-semibold">Center Summary</h2>
+      <Reveal delay={0.2}>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Booking Summary */}
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="text-muted-foreground">Approved Bookings</p>
+          <div
+            className="rounded-[28px] border p-7"
+            style={{
+              background: colors.surface,
+              borderColor: colors.border,
+            }}
+          >
+            <h2
+              className="text-xl font-bold"
+              style={{
+                color: colors.text,
+              }}
+            >
+              Booking Summary
+            </h2>
 
-            <h3 className="text-2xl font-bold">{stats?.approvedBookings}</h3>
+            <div className="mt-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p
+                    className="text-sm"
+                    style={{
+                      color: colors.textMuted,
+                    }}
+                  >
+                    Approved Bookings
+                  </p>
+
+                  <h3
+                    className="mt-2 text-4xl font-bold"
+                    style={{
+                      color: colors.text,
+                    }}
+                  >
+                    {stats?.approvedBookings ?? 0}
+                  </h3>
+                </div>
+
+                <div className="rounded-full bg-green-100 p-4">
+                  <CheckCircle className="h-8 w-8 text-green-600" />
+                </div>
+              </div>
+
+              <div
+                className="border-t pt-6"
+                style={{
+                  borderColor: colors.border,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p
+                      className="text-sm"
+                      style={{
+                        color: colors.textMuted,
+                      }}
+                    >
+                      Rejected Bookings
+                    </p>
+
+                    <h3
+                      className="mt-2 text-4xl font-bold"
+                      style={{
+                        color: colors.text,
+                      }}
+                    >
+                      {stats?.rejectedBookings ?? 0}
+                    </h3>
+                  </div>
+
+                  <div className="rounded-full bg-red-100 p-4">
+                    <Clock3 className="h-8 w-8 text-red-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <p className="text-muted-foreground">Rejected Bookings</p>
+          {/* Quick Overview */}
 
-            <h3 className="text-2xl font-bold">{stats?.rejectedBookings}</h3>
+          <div
+            className="rounded-[28px] border p-7"
+            style={{
+              background: colors.surface,
+              borderColor: colors.border,
+            }}
+          >
+            <h2
+              className="text-xl font-bold"
+              style={{
+                color: colors.text,
+              }}
+            >
+              Quick Overview
+            </h2>
+
+            <div className="mt-7 grid grid-cols-2 gap-5">
+              <div
+                className="rounded-2xl p-5"
+                style={{
+                  background: colors.surfaceAlt,
+                }}
+              >
+                <p
+                  className="text-sm"
+                  style={{
+                    color: colors.textMuted,
+                  }}
+                >
+                  Total Revenue
+                </p>
+
+                <h3
+                  className="mt-2 text-3xl font-bold"
+                  style={{
+                    color: colors.text,
+                  }}
+                >
+                  ₹{stats?.monthlyRevenue ?? 0}
+                </h3>
+              </div>
+
+              <div
+                className="rounded-2xl p-5"
+                style={{
+                  background: colors.surfaceAlt,
+                }}
+              >
+                <p
+                  className="text-sm"
+                  style={{
+                    color: colors.textMuted,
+                  }}
+                >
+                  Active Caregivers
+                </p>
+
+                <h3
+                  className="mt-2 text-3xl font-bold"
+                  style={{
+                    color: colors.text,
+                  }}
+                >
+                  {stats?.totalCaregivers ?? 0}
+                </h3>
+              </div>
+
+              <div
+                className="rounded-2xl p-5"
+                style={{
+                  background: colors.surfaceAlt,
+                }}
+              >
+                <p
+                  className="text-sm"
+                  style={{
+                    color: colors.textMuted,
+                  }}
+                >
+                  Pending
+                </p>
+
+                <h3
+                  className="mt-2 text-3xl font-bold"
+                  style={{
+                    color: colors.text,
+                  }}
+                >
+                  {stats?.pendingBookings ?? 0}
+                </h3>
+              </div>
+
+              <div
+                className="rounded-2xl p-5"
+                style={{
+                  background: colors.surfaceAlt,
+                }}
+              >
+                <p
+                  className="text-sm"
+                  style={{
+                    color: colors.textMuted,
+                  }}
+                >
+                  Completed
+                </p>
+
+                <h3
+                  className="mt-2 text-3xl font-bold"
+                  style={{
+                    color: colors.text,
+                  }}
+                >
+                  {stats?.completedBookings ?? 0}
+                </h3>
+              </div>
+            </div>
           </div>
         </div>
+      </Reveal>
+
+      <div>
+        <Reveal delay={0.3}>
+          <div
+            className="rounded-[30px] border p-8"
+            style={{
+              background: colors.surface,
+              borderColor: colors.border,
+            }}
+          >
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <Eyebrow>Little Steps</Eyebrow>
+
+                <h2
+                  className="text-3xl font-bold"
+                  style={{
+                    color: colors.text,
+                  }}
+                >
+                  Keep Growing Your Childcare Business
+                </h2>
+
+                <p
+                  className="mt-3 max-w-2xl"
+                  style={{
+                    color: colors.textMuted,
+                  }}
+                >
+                  Manage caregivers, bookings and revenue from one beautiful
+                  dashboard experience.
+                </p>
+              </div>
+
+              <Button>Manage Center</Button>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </div>
   );

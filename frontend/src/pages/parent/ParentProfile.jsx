@@ -1,55 +1,106 @@
 import { Link } from "react-router-dom";
+
 import useAuth from "../../hooks/useAuth";
+import { useTheme } from "../../context/ThemeContext";
+
 import { Button } from "@/components/ui/button";
 
 const ParentProfile = () => {
   const { user } = useAuth();
+  const { colors } = useTheme();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">My Profile</h1>
+        <h1 className="text-3xl font-bold" style={{ color: colors.text }}>
+          My Profile
+        </h1>
 
-        <p className="text-muted-foreground">View your account information.</p>
+        <p className="mt-2" style={{ color: colors.textMuted }}>
+          View and manage your account information.
+        </p>
       </div>
 
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <div className="space-y-5">
+      {/* Profile Card */}
+      <div
+        className="rounded-3xl p-8 shadow-lg"
+        style={{
+          backgroundColor: colors.surface,
+          border: `1px solid ${colors.borderAccent}`,
+        }}
+      >
+        <div className="grid gap-8 md:grid-cols-2">
           <div>
-            <p className="text-sm text-muted-foreground">Full Name</p>
+            <p className="text-sm" style={{ color: colors.textMuted }}>
+              Full Name
+            </p>
 
-            <h2 className="text-lg font-semibold">{user?.name}</h2>
+            <h2
+              className="mt-2 text-xl font-semibold"
+              style={{ color: colors.text }}
+            >
+              {user?.name}
+            </h2>
           </div>
 
           <div>
-            <p className="text-sm text-muted-foreground">Email</p>
+            <p className="text-sm" style={{ color: colors.textMuted }}>
+              Email
+            </p>
 
-            <h2 className="text-lg font-semibold">{user?.email}</h2>
+            <h2
+              className="mt-2 text-xl font-semibold break-all"
+              style={{ color: colors.text }}
+            >
+              {user?.email}
+            </h2>
           </div>
 
           <div>
-            <p className="text-sm text-muted-foreground">Role</p>
+            <p className="text-sm" style={{ color: colors.textMuted }}>
+              Role
+            </p>
 
-            <h2 className="text-lg font-semibold capitalize">{user?.role}</h2>
+            <h2
+              className="mt-2 text-xl font-semibold capitalize"
+              style={{ color: colors.text }}
+            >
+              {user?.role}
+            </h2>
           </div>
 
           <div>
-            <p className="text-sm text-muted-foreground">Account Status</p>
+            <p className="text-sm" style={{ color: colors.textMuted }}>
+              Account Status
+            </p>
 
-            <h2 className="text-lg font-semibold capitalize">{user?.status}</h2>
+            <h2
+              className="mt-2 text-xl font-semibold capitalize"
+              style={{ color: colors.text }}
+            >
+              {user?.status || "Active"}
+            </h2>
           </div>
 
           <div>
-            <p className="text-sm text-muted-foreground">Approval</p>
+            <p className="text-sm" style={{ color: colors.textMuted }}>
+              Approval
+            </p>
 
-            <h2 className="text-lg font-semibold">
+            <h2
+              className="mt-2 text-xl font-semibold"
+              style={{ color: colors.text }}
+            >
               {user?.isApproved ? "Approved" : "Pending"}
             </h2>
-
-            <Button asChild>
-              <Link to="/parent/profile/edit">Edit Profile</Link>
-            </Button>
           </div>
+        </div>
+
+        <div className="mt-10">
+          <Button asChild className="text-white">
+            <Link to="/parent/profile/edit">Edit Profile</Link>
+          </Button>
         </div>
       </div>
     </div>

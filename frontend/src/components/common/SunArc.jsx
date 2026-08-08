@@ -1,4 +1,4 @@
-import { brand } from "./theme";
+import { brand } from "../data/theme";
 
 export default function SunArc({ flip = false }) {
   return (

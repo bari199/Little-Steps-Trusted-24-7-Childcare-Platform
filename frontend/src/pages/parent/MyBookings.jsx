@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import Loading from "../../components/common/Loading";
-
 import BookingCard from "../../components/parent/BookingCard";
 
 import { getMyBookings, cancelBooking } from "../../services/bookingService";
+import { useTheme } from "../../context/ThemeContext";
 
 const MyBookings = () => {
+  const { colors } = useTheme();
+
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +20,6 @@ const MyBookings = () => {
   const fetchBookings = async () => {
     try {
       const data = await getMyBookings();
-
       setBookings(data.bookings);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to load bookings");
@@ -30,9 +31,7 @@ const MyBookings = () => {
   const handleCancel = async (id) => {
     try {
       const response = await cancelBooking(id);
-
       toast.success(response.message);
-
       fetchBookings();
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to cancel booking");
@@ -44,18 +43,32 @@ const MyBookings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">My Bookings</h1>
+        <h1 className="text-3xl font-bold" style={{ color: colors.text }}>
+          My Bookings
+        </h1>
 
-        <p className="text-muted-foreground">View and manage your bookings.</p>
+        <p className="mt-2" style={{ color: colors.textMuted }}>
+          View and manage your childcare bookings.
+        </p>
       </div>
 
+      {/* Empty State */}
       {bookings.length === 0 ? (
-        <div className="rounded-lg border p-10 text-center">
-          <h2 className="text-xl font-semibold">No Bookings Found</h2>
+        <div
+          className="rounded-3xl p-12 text-center"
+          style={{
+            backgroundColor: colors.surface,
+            border: `1px solid ${colors.borderAccent}`,
+          }}
+        >
+          <h2 className="text-2xl font-bold" style={{ color: colors.text }}>
+            No Bookings Found
+          </h2>
 
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-3" style={{ color: colors.textMuted }}>
             You haven't booked any childcare center yet.
           </p>
         </div>

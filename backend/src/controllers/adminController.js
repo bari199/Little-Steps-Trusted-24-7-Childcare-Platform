@@ -9,6 +9,7 @@ import Payment from "../models/Payment.js";
 const getDashboardStats = async (req, res) => {
   try {
     const [
+      totalUsers,
       totalParents,
       totalProviders,
       verifiedProviders,
@@ -23,42 +24,64 @@ const getDashboardStats = async (req, res) => {
       totalPayments,
       revenue,
     ] = await Promise.all([
-      User.countDocuments({ role: "parent" }),
+      // Total users
+      User.countDocuments(),
 
-      User.countDocuments({ role: "provider" }),
-
-      Provider.countDocuments({
-        verificationStatus: "Approved",
+      // Total parents
+      User.countDocuments({
+        role: "parent",
       }),
 
-      Provider.countDocuments({
-        verificationStatus: "Pending",
+      // Total providers
+      User.countDocuments({
+        role: "provider",
       }),
 
+      // Verified providers
+      User.countDocuments({
+        role: "provider",
+        isApproved: true,
+      }),
+
+      // Pending providers
+      User.countDocuments({
+        role: "provider",
+        isApproved: false,
+      }),
+
+      // Total centers
       Center.countDocuments(),
 
+      // Total caregivers
       Caregiver.countDocuments(),
 
+      // Total bookings
       Booking.countDocuments(),
 
+      // Pending bookings
       Booking.countDocuments({
-        status: "Pending",
+        status: "pending",
       }),
 
+      // Approved bookings
       Booking.countDocuments({
-        status: "Approved",
+        status: "approved",
       }),
 
+      // Rejected bookings
       Booking.countDocuments({
-        status: "Rejected",
+        status: "rejected",
       }),
 
+      // Total subscriptions
       Subscription.countDocuments(),
 
+      // Successful payments
       Payment.countDocuments({
         status: "Success",
       }),
 
+      // Total revenue
       Payment.aggregate([
         {
           $match: {
@@ -79,6 +102,7 @@ const getDashboardStats = async (req, res) => {
     res.status(200).json({
       success: true,
       stats: {
+        totalUsers,
         totalParents,
         totalProviders,
         verifiedProviders,
@@ -95,6 +119,8 @@ const getDashboardStats = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("GET DASHBOARD STATS ERROR:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -106,10 +132,39 @@ const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
 
+    const formattedUsers = await Promise.all(
+      users.map(async (user) => {
+        if (user.role !== "provider") {
+          return user;
+        }
+
+        const provider = await Provider.findOne({
+          user: user._id,
+        });
+
+        return {
+          ...user.toObject(),
+
+          provider: provider
+            ? {
+                _id: provider._id,
+                phone: provider.phone,
+                address: provider.address,
+                qualification: provider.qualification,
+                experience: provider.experience,
+                governmentId: provider.governmentId,
+                profileImage: provider.profileImage,
+                verificationStatus: provider.verificationStatus,
+              }
+            : null,
+        };
+      }),
+    );
+
     res.status(200).json({
       success: true,
-      total: users.length,
-      users,
+      total: formattedUsers.length,
+      users: formattedUsers,
     });
   } catch (error) {
     res.status(500).json({
@@ -126,20 +181,26 @@ const getSingleUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-
         message: "User not found",
       });
     }
 
+    let provider = null;
+
+    if (user.role === "provider") {
+      provider = await Provider.findOne({
+        user: user._id,
+      }).select("-__v");
+    }
+
     res.status(200).json({
       success: true,
-
       user,
+      provider,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-
       message: error.message,
     });
   }
@@ -208,21 +269,19 @@ const getAllProviders = async (req, res) => {
 
 const getPendingProviders = async (req, res) => {
   try {
-    const providers = await Provider.find({
-      verificationStatus: "pending",
-    }).populate("user", "name email role status");
+    const providers = await User.find({
+      role: "provider",
+      isApproved: false,
+    }).select("-password");
 
     res.status(200).json({
       success: true,
-
       total: providers.length,
-
       providers,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-
       message: error.message,
     });
   }
@@ -264,26 +323,32 @@ const approveProvider = async (req, res) => {
     if (!provider) {
       return res.status(404).json({
         success: false,
-
         message: "Provider not found",
       });
     }
 
+    // Update Provider
     provider.verificationStatus = "approved";
 
     await provider.save();
 
+    // Update related User
+    const user = await User.findById(provider.user);
+
+    if (user) {
+      user.isApproved = true;
+      user.status = "active";
+
+      await user.save();
+    }
+
     res.status(200).json({
       success: true,
-
       message: "Provider approved successfully",
-
-      provider,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-
       message: error.message,
     });
   }
@@ -296,35 +361,46 @@ const rejectProvider = async (req, res) => {
     if (!provider) {
       return res.status(404).json({
         success: false,
-
         message: "Provider not found",
       });
     }
 
+    // Update Provider
     provider.verificationStatus = "rejected";
 
     await provider.save();
 
+    // Update related User
+    const user = await User.findById(provider.user);
+
+    if (user) {
+      user.isApproved = false;
+      user.status = "blocked";
+
+      await user.save();
+    }
+
     res.status(200).json({
       success: true,
-
       message: "Provider rejected successfully",
-
-      provider,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-
       message: error.message,
     });
   }
 };
-
 const getAllCenters = async (req, res) => {
   try {
     const centers = await Center.find()
-      .populate("provider", "businessName verificationStatus")
+      .populate({
+        path: "provider",
+        populate: {
+          path: "user",
+          select: "name email",
+        },
+      })
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -342,10 +418,13 @@ const getAllCenters = async (req, res) => {
 
 const getSingleCenter = async (req, res) => {
   try {
-    const center = await Center.findById(req.params.id).populate(
-      "provider",
-      "businessName verificationStatus",
-    );
+    const center = await Center.findById(req.params.id).populate({
+      path: "provider",
+      populate: {
+        path: "user",
+        select: "name email",
+      },
+    });
 
     if (!center) {
       return res.status(404).json({

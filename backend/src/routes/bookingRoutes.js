@@ -33,6 +33,10 @@ router.patch(
 
 router.get(
   "/provider",
+  (req, res, next) => {
+    console.log("========== /bookings/provider ROUTE HIT ==========");
+    next();
+  },
   authMiddleware,
   roleMiddleware("provider"),
   getProviderBookings,

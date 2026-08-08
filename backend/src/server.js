@@ -9,7 +9,7 @@ import connectDB from "./config/db.js";
 const PORT = process.env.PORT || 8000;
 
 connectDB();
-
+console.log("BACKEND FILE PATH:", import.meta.url);
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

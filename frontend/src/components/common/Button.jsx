@@ -1,5 +1,5 @@
-import { useTheme } from "./ThemeContext";
-import { brand } from "./theme";
+import { useTheme } from "../../context/ThemeContext";
+import { brand } from "../data/theme";
 
 export default function Button({
   children,

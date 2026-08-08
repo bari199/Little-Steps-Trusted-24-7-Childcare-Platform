@@ -1,9 +1,9 @@
 import { Quote } from "lucide-react";
 
-import Reveal from "./Reveal";
-import Eyebrow from "./Eyebrow";
-import { useTheme } from "./ThemeContext";
-import { brand } from "./theme";
+import Reveal from "../common/Reveal";
+import Eyebrow from "../common/Eyebrow";
+import { useTheme } from "../../context/ThemeContext";
+import { brand } from "../data/theme";
 
 export default function Testimonials() {
   const { colors } = useTheme();

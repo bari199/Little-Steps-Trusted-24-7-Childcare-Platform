@@ -5,17 +5,6 @@ import cloudinary from "../config/cloudinary.js";
 
 const createCenter = async (req, res) => {
   try {
-    console.log("\n========== CREATE CENTER ==========");
-
-    console.log("\nAuthenticated User:");
-    console.dir(req.user, { depth: null });
-
-    console.log("\nRequest Body:");
-    console.dir(req.body, { depth: null });
-
-    console.log("\nUploaded Files:");
-    console.dir(req.files, { depth: null });
-
     // ==========================================
     // Find Provider
     // ==========================================
@@ -37,18 +26,17 @@ const createCenter = async (req, res) => {
 
     console.log("Provider Verification Status:", provider.verificationStatus);
 
-    // if (provider.verificationStatus !== "approved") {
-    //   console.log("❌ Provider is not approved");
+    // Check if provider already has a center
+    const existingCenter = await Center.findOne({
+      provider: provider._id,
+    });
 
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: "Provider account is not approved yet.",
-    //   });
-    // }
-
-    // ==========================================
-    // Extract Request Data
-    // ==========================================
+    if (existingCenter) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already created a daycare center.",
+      });
+    }
     const {
       centerName,
       description,
@@ -468,9 +456,48 @@ const updateCenter = async (req, res) => {
   }
 };
 
+// const deleteCenter = async (req, res) => {
+//   try {
+//     const center = await Center.findById(req.params.id);
+
+//     if (!center) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Center not found",
+//       });
+//     }
+
+//     await center.deleteOne();
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Center deleted successfully",
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
 const deleteCenter = async (req, res) => {
   try {
-    const center = await Center.findById(req.params.id);
+    const provider = await Provider.findOne({
+      user: req.user._id,
+    });
+
+    if (!provider) {
+      return res.status(404).json({
+        success: false,
+        message: "Provider not found",
+      });
+    }
+
+    const center = await Center.findOne({
+      _id: req.params.id,
+      provider: provider._id,
+    });
 
     if (!center) {
       return res.status(404).json({
@@ -479,7 +506,7 @@ const deleteCenter = async (req, res) => {
       });
     }
 
-    await center.deleteOne();
+    await Center.findByIdAndDelete(center._id);
 
     res.status(200).json({
       success: true,
@@ -492,7 +519,6 @@ const deleteCenter = async (req, res) => {
     });
   }
 };
-
 const getFeaturedCenters = async (req, res) => {
   try {
     const centers = await Center.find({

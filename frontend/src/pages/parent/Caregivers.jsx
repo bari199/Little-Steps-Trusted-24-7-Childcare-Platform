@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
+
 import CaregiverCard from "../../components/parent/CaregiverCard";
 import Loading from "../../components/common/Loading";
 import { getProviderCaregivers } from "../../services/caregiverService";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const Caregivers = () => {
@@ -20,9 +19,7 @@ const Caregivers = () => {
   const fetchCaregivers = async () => {
     try {
       setLoading(true);
-
       const response = await getProviderCaregivers();
-
       setCaregivers(response.caregivers || []);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to load caregivers");
@@ -37,17 +34,20 @@ const Caregivers = () => {
     );
   }, [caregivers, search]);
 
-  if (loading) {
-    return <Loading />;
-  }
+  if (loading) return <Loading />;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Our Caregivers</h1>
-          <p className="text-muted-foreground">
+          <h1
+            className="text-3xl font-bold text-[#241C0F] dark:text-[#FFF6E2]"
+            style={{ fontFamily: "Fraunces, serif" }}
+          >
+            Our caregivers
+          </h1>
+          <p className="text-[#6B5D45] dark:text-[#C9B896]">
             Meet our experienced childcare professionals.
           </p>
         </div>
@@ -58,21 +58,27 @@ const Caregivers = () => {
         placeholder="Search caregiver..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        className="border-[#F0E1BE] focus-visible:ring-[#FF9500] dark:border-[#3A2E17] dark:bg-[#2A2210] dark:text-[#FFF6E2]"
       />
 
       {/* Content */}
       {filteredCaregivers.length === 0 ? (
-        <div className="rounded-lg border py-16 text-center">
-          <h2 className="text-2xl font-semibold">No Caregivers Found</h2>
-
-          <p className="mt-2 text-muted-foreground">
+        <div className="rounded-2xl border border-[#F0E1BE] py-16 text-center dark:border-[#3A2E17]">
+          <h2 className="text-2xl font-semibold text-[#241C0F] dark:text-[#FFF6E2]">
+            No caregivers found
+          </h2>
+          <p className="mt-2 text-[#6B5D45] dark:text-[#C9B896]">
             {search
               ? "No caregivers match your search."
               : "Create your first caregiver to get started."}
           </p>
         </div>
       ) : (
-        <CaregiverCard key={caregivers._id} caregiver={caregiver} />
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {filteredCaregivers.map((caregiver) => (
+            <CaregiverCard key={caregiver._id} caregiver={caregiver} />
+          ))}
+        </div>
       )}
     </div>
   );

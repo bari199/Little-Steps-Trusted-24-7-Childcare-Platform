@@ -17,19 +17,19 @@ const providerSchema = new mongoose.Schema(
 
     address: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
 
     qualification: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
     },
 
     experience: {
       type: Number,
-      required: true,
+      default: 0,
       min: 0,
     },
 
