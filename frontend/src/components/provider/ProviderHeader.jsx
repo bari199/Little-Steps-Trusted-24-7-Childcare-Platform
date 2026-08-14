@@ -2,7 +2,6 @@ import { CalendarDays, Search, Menu } from "lucide-react";
 import { motion } from "framer-motion";
 
 import useAuth from "@/hooks/useAuth";
-
 import UserMenu from "../common/UserMenu";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -34,20 +33,18 @@ const ProviderHeader = ({ onSidebarOpen }) => {
           min-h-20
           items-center
           justify-between
-          gap-4
+          gap-3
           px-4
           sm:px-6
           lg:px-8
         "
       >
-        {/* =========================================
-            LEFT
-        ========================================= */}
+        {/* LEFT */}
         <div className="min-w-0 flex-1">
           <h1
             className="
               truncate
-              text-xl
+              text-lg
               font-bold
               tracking-tight
               sm:text-2xl
@@ -61,7 +58,7 @@ const ProviderHeader = ({ onSidebarOpen }) => {
           </h1>
 
           <div
-            className="mt-1 flex items-center gap-2 text-xs sm:text-sm"
+            className="mt-1 flex min-w-0 items-center gap-2 text-xs sm:text-sm"
             style={{ color: colors.textMuted }}
           >
             <CalendarDays className="h-4 w-4 shrink-0" />
@@ -70,9 +67,7 @@ const ProviderHeader = ({ onSidebarOpen }) => {
           </div>
         </div>
 
-        {/* =========================================
-            RIGHT
-        ========================================= */}
+        {/* RIGHT */}
         <div className="flex shrink-0 items-center gap-2 sm:gap-4">
           {/* Search */}
           <div className="relative hidden md:block">
@@ -115,16 +110,9 @@ const ProviderHeader = ({ onSidebarOpen }) => {
           </div>
 
           {/* User */}
-          <div className="hidden sm:block">
-            <UserMenu />
-          </div>
+          <UserMenu />
 
-          {/* Mobile User */}
-          <div className="sm:hidden">
-            <UserMenu />
-          </div>
-
-          {/* Mobile Sidebar Button */}
+          {/* Mobile Sidebar */}
           <button
             type="button"
             onClick={onSidebarOpen}
@@ -138,7 +126,9 @@ const ProviderHeader = ({ onSidebarOpen }) => {
               justify-center
               rounded-xl
               border
-              transition-colors
+              transition-all
+              duration-200
+              hover:scale-105
               md:hidden
             "
             style={{

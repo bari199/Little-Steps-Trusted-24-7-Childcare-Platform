@@ -11,6 +11,14 @@ const ProviderLayout = () => {
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  const openSidebar = () => {
+    setMobileSidebarOpen(true);
+  };
+
+  const closeSidebar = () => {
+    setMobileSidebarOpen(false);
+  };
+
   return (
     <div
       className="min-h-screen transition-colors duration-300"
@@ -20,15 +28,19 @@ const ProviderLayout = () => {
       }}
     >
       <div className="flex min-h-screen">
-        {/* Sidebar */}
+        {/* =========================
+            SIDEBAR
+        ========================= */}
         <ProviderSidebar
           mobileOpen={mobileSidebarOpen}
-          onClose={() => setMobileSidebarOpen(false)}
+          onClose={closeSidebar}
         />
 
-        {/* Main Content */}
+        {/* =========================
+            MAIN AREA
+        ========================= */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <ProviderHeader onSidebarOpen={() => setMobileSidebarOpen(true)} />
+          <ProviderHeader onSidebarOpen={openSidebar} />
 
           <main
             className="
