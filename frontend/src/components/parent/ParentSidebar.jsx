@@ -88,16 +88,24 @@ const ParentSidebar = ({ collapsed = false }) => {
 
   return (
     <TooltipProvider delayDuration={200}>
-      {/* =====================================================
-          MOBILE HEADER
-      ===================================================== */}
+      {/* =========================================================
+          MOBILE TOP BAR
+          Only visible on mobile
+      ========================================================= */}
       <header
         className="
-          sticky top-0 z-30
-          flex h-16 w-full
-          items-center justify-between
-          border-b border-[#F0E1BE]
-          bg-white px-4
+          fixed
+          inset-x-0
+          top-0
+          z-40
+          flex
+          h-16
+          items-center
+          justify-between
+          border-b
+          border-[#F0E1BE]
+          bg-white
+          px-4
           dark:border-[#3A2E17]
           dark:bg-[#211B10]
           md:hidden
@@ -107,10 +115,11 @@ const ParentSidebar = ({ collapsed = false }) => {
           <LogoMark />
 
           <div className="min-w-0">
-            <h2
+            <p
               className="
                 truncate
-                text-base font-bold
+                text-base
+                font-bold
                 leading-tight
                 text-[#241C0F]
                 dark:text-[#FFF6E2]
@@ -118,7 +127,7 @@ const ParentSidebar = ({ collapsed = false }) => {
               style={{ fontFamily: "Fraunces, serif" }}
             >
               Little Steps
-            </h2>
+            </p>
 
             <p
               className="
@@ -139,7 +148,13 @@ const ParentSidebar = ({ collapsed = false }) => {
           onClick={() => setMobileOpen(true)}
           aria-label="Open menu"
           className="
-            shrink-0 rounded-lg p-2
+            flex
+            h-10
+            w-10
+            shrink-0
+            items-center
+            justify-center
+            rounded-lg
             text-[#241C0F]
             transition-colors
             hover:bg-[#FFF6E2]
@@ -151,9 +166,9 @@ const ParentSidebar = ({ collapsed = false }) => {
         </button>
       </header>
 
-      {/* =====================================================
+      {/* =========================================================
           MOBILE BACKDROP
-      ===================================================== */}
+      ========================================================= */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -162,15 +177,221 @@ const ParentSidebar = ({ collapsed = false }) => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 z-40 bg-black/50 md:hidden"
+            className="
+              fixed
+              inset-0
+              z-50
+              bg-black/50
+              md:hidden
+            "
             aria-hidden="true"
           />
         )}
       </AnimatePresence>
 
-      {/* =====================================================
-          SIDEBAR
-      ===================================================== */}
+      {/* =========================================================
+          MOBILE SIDEBAR / DRAWER
+          Completely independent from desktop collapsed state
+      ========================================================= */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.aside
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{
+              duration: 0.25,
+              ease: "easeOut",
+            }}
+            className="
+              fixed
+              inset-y-0
+              left-0
+              z-[60]
+              flex
+              w-[288px]
+              max-w-[85vw]
+              flex-col
+              overflow-hidden
+              border-r
+              border-[#F0E1BE]
+              bg-white
+              shadow-2xl
+              dark:border-[#3A2E17]
+              dark:bg-[#211B10]
+              md:hidden
+            "
+            aria-label="Mobile sidebar navigation"
+          >
+            {/* Mobile drawer header */}
+            <div
+              className="
+                flex
+                min-h-[81px]
+                shrink-0
+                items-center
+                justify-between
+                border-b
+                border-[#F0E1BE]
+                px-4
+                py-5
+                dark:border-[#3A2E17]
+              "
+            >
+              <div className="flex min-w-0 items-center gap-2.5">
+                <LogoMark />
+
+                <div className="min-w-0">
+                  <p
+                    className="
+                      truncate
+                      text-lg
+                      font-bold
+                      leading-tight
+                      text-[#241C0F]
+                      dark:text-[#FFF6E2]
+                    "
+                    style={{ fontFamily: "Fraunces, serif" }}
+                  >
+                    Little Steps
+                  </p>
+
+                  <p
+                    className="
+                      truncate
+                      text-xs
+                      leading-tight
+                      text-[#6B5D45]
+                      dark:text-[#C9B896]
+                    "
+                  >
+                    Parent dashboard
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close menu"
+                className="
+                  flex
+                  h-9
+                  w-9
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-lg
+                  text-[#6B5D45]
+                  transition-colors
+                  hover:bg-[#FFF6E2]
+                  dark:text-[#C9B896]
+                  dark:hover:bg-[#2A2210]
+                "
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Mobile navigation */}
+            <nav
+              className="
+                min-h-0
+                flex-1
+                overflow-y-auto
+                overflow-x-hidden
+                px-4
+                py-5
+                [scrollbar-width:none]
+                [-ms-overflow-style:none]
+                [&::-webkit-scrollbar]:hidden
+              "
+            >
+              <div className="flex w-full flex-col gap-1">
+                {NAV_ITEMS.map(({ name, path, icon: Icon }) => (
+                  <NavLink
+                    key={path}
+                    to={path}
+                    end={path === "/"}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `
+                        flex
+                        h-12
+                        w-full
+                        shrink-0
+                        items-center
+                        gap-3
+                        rounded-xl
+                        px-4
+                        text-sm
+                        font-medium
+                        transition-colors
+
+                        ${
+                          isActive
+                            ? "bg-gradient-to-r from-[#FF9500] to-[#FFC300] text-[#241C0F]"
+                            : "text-[#6B5D45] hover:bg-[#FFF6E2] dark:text-[#C9B896] dark:hover:bg-[#2A2210]"
+                        }
+                      `
+                    }
+                  >
+                    <Icon size={18} className="shrink-0" aria-hidden="true" />
+
+                    <span className="min-w-0 flex-1 truncate whitespace-nowrap">
+                      {name}
+                    </span>
+                  </NavLink>
+                ))}
+              </div>
+            </nav>
+
+            {/* Mobile logout */}
+            <div
+              className="
+                shrink-0
+                border-t
+                border-[#F0E1BE]
+                p-4
+                dark:border-[#3A2E17]
+              "
+            >
+              <button
+                type="button"
+                className="
+                  flex
+                  h-11
+                  w-full
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-xl
+                  border
+                  border-red-200
+                  px-4
+                  text-sm
+                  font-medium
+                  text-red-600
+                  transition-colors
+                  hover:bg-red-50
+                  dark:border-red-900/40
+                  dark:text-red-400
+                  dark:hover:bg-red-950/30
+                "
+              >
+                <LogOut size={16} className="shrink-0" aria-hidden="true" />
+
+                <span>Logout</span>
+              </button>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* =========================================================
+          DESKTOP SIDEBAR
+          Completely independent from mobile drawer
+      ========================================================= */}
       <motion.aside
         initial={false}
         animate={{
@@ -180,42 +401,25 @@ const ParentSidebar = ({ collapsed = false }) => {
           duration: 0.2,
           ease: "easeOut",
         }}
-        className={`
-          fixed
-          inset-y-0
-          left-0
-          z-50
-          flex
+        className="
+          sticky
+          top-0
+          z-30
+          hidden
           h-screen
+          shrink-0
           flex-col
           overflow-hidden
-
           border-r
           border-[#F0E1BE]
           bg-white
-
-          shadow-xl
-
           dark:border-[#3A2E17]
           dark:bg-[#211B10]
-
-          transition-transform
-          duration-300
-          ease-out
-
-          ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-
-          md:sticky
-          md:top-0
-          md:z-40
-          md:translate-x-0
-          md:shadow-none
-        `}
-        aria-label="Sidebar navigation"
+          md:flex
+        "
+        aria-label="Desktop sidebar navigation"
       >
-        {/* =====================================================
-            SIDEBAR HEADER
-        ===================================================== */}
+        {/* Desktop header */}
         <div
           className="
             flex
@@ -230,11 +434,18 @@ const ParentSidebar = ({ collapsed = false }) => {
             dark:border-[#3A2E17]
           "
         >
-          <div className="flex min-w-0 items-center gap-2.5">
+          <div
+            className={`
+              flex
+              min-w-0
+              items-center
+              ${collapsed ? "w-full justify-center" : "gap-2.5"}
+            `}
+          >
             <LogoMark />
 
             <AnimatePresence initial={false}>
-              {(!collapsed || mobileOpen) && (
+              {!collapsed && (
                 <motion.div
                   initial={{
                     opacity: 0,
@@ -280,141 +491,99 @@ const ParentSidebar = ({ collapsed = false }) => {
               )}
             </AnimatePresence>
           </div>
-
-          {/* Mobile close */}
-          <button
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
-            className="
-              shrink-0
-              rounded-lg
-              p-1.5
-              text-[#6B5D45]
-              transition-colors
-              hover:bg-[#FFF6E2]
-              dark:text-[#C9B896]
-              dark:hover:bg-[#2A2210]
-              md:hidden
-            "
-          >
-            <X size={20} />
-          </button>
         </div>
 
-        {/* =====================================================
-            NAVIGATION
-        ===================================================== */}
+        {/* Desktop navigation */}
         <nav
           className="
-            flex-1
             min-h-0
+            flex-1
             overflow-y-auto
             overflow-x-hidden
             px-4
             py-5
-
             [scrollbar-width:none]
             [-ms-overflow-style:none]
             [&::-webkit-scrollbar]:hidden
           "
         >
-          {/* IMPORTANT:
-              block + w-full ensures every item gets its own row.
-          */}
           <div className="flex w-full flex-col gap-1">
-            {NAV_ITEMS.map(({ name, path, icon: Icon }) => {
-              const link = (
-                <NavLink
-                  to={path}
-                  end={path === "/"}
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) => `
-                    flex
-                    h-12
-                    w-full
-                    shrink-0
-                    items-center
-                    gap-3
-                    overflow-hidden
-                    rounded-xl
-                    px-4
-                    text-sm
-                    font-medium
-                    transition-colors
+            {NAV_ITEMS.map(({ name, path, icon: Icon }) => (
+              <Tooltip key={path}>
+                <TooltipTrigger asChild>
+                  <NavLink
+                    to={path}
+                    end={path === "/"}
+                    className={({ isActive }) =>
+                      `
+                        flex
+                        h-12
+                        w-full
+                        shrink-0
+                        items-center
+                        rounded-xl
+                        text-sm
+                        font-medium
+                        transition-colors
 
-                    ${
-                      isActive
-                        ? "bg-gradient-to-r from-[#FF9500] to-[#FFC300] text-[#241C0F]"
-                        : "text-[#6B5D45] hover:bg-[#FFF6E2] dark:text-[#C9B896] dark:hover:bg-[#2A2210]"
+                        ${
+                          collapsed
+                            ? "justify-center px-0"
+                            : "justify-start gap-3 px-4"
+                        }
+
+                        ${
+                          isActive
+                            ? "bg-gradient-to-r from-[#FF9500] to-[#FFC300] text-[#241C0F]"
+                            : "text-[#6B5D45] hover:bg-[#FFF6E2] dark:text-[#C9B896] dark:hover:bg-[#2A2210]"
+                        }
+                      `
                     }
+                  >
+                    <Icon size={18} className="shrink-0" aria-hidden="true" />
 
-                    ${collapsed ? "justify-center px-0" : "justify-start"}
-                  `}
-                >
-                  <Icon size={18} className="shrink-0" aria-hidden="true" />
+                    <AnimatePresence initial={false}>
+                      {!collapsed && (
+                        <motion.span
+                          initial={{
+                            opacity: 0,
+                            width: 0,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            width: "auto",
+                          }}
+                          exit={{
+                            opacity: 0,
+                            width: 0,
+                          }}
+                          transition={{ duration: 0.15 }}
+                          className="
+                            min-w-0
+                            flex-1
+                            overflow-hidden
+                            truncate
+                            whitespace-nowrap
+                          "
+                        >
+                          {name}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </NavLink>
+                </TooltipTrigger>
 
-                  <AnimatePresence initial={false}>
-                    {(!collapsed || mobileOpen) && (
-                      <motion.span
-                        initial={{
-                          opacity: 0,
-                          width: 0,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          width: "auto",
-                        }}
-                        exit={{
-                          opacity: 0,
-                          width: 0,
-                        }}
-                        transition={{ duration: 0.15 }}
-                        className="
-                          min-w-0
-                          flex-1
-                          overflow-hidden
-                          truncate
-                          whitespace-nowrap
-                        "
-                      >
-                        {name}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </NavLink>
-              );
-
-              {
-                /* Desktop collapsed tooltip only */
-              }
-              if (collapsed) {
-                return (
-                  <Tooltip key={path}>
-                    <TooltipTrigger asChild>{link}</TooltipTrigger>
-
-                    <TooltipContent
-                      side="right"
-                      className="hidden text-xs md:block"
-                    >
-                      {name}
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              }
-
-              return (
-                <div key={path} className="w-full shrink-0">
-                  {link}
-                </div>
-              );
-            })}
+                {collapsed && (
+                  <TooltipContent side="right" className="text-xs">
+                    {name}
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            ))}
           </div>
         </nav>
 
-        {/* =====================================================
-            LOGOUT
-        ===================================================== */}
+        {/* Desktop logout */}
         <div
           className="
             shrink-0
@@ -450,7 +619,7 @@ const ParentSidebar = ({ collapsed = false }) => {
                 </button>
               </TooltipTrigger>
 
-              <TooltipContent side="right" className="hidden text-xs md:block">
+              <TooltipContent side="right" className="text-xs">
                 Logout
               </TooltipContent>
             </Tooltip>
@@ -480,7 +649,7 @@ const ParentSidebar = ({ collapsed = false }) => {
             >
               <LogOut size={16} className="shrink-0" aria-hidden="true" />
 
-              <span className="whitespace-nowrap">Logout</span>
+              <span>Logout</span>
             </button>
           )}
         </div>
