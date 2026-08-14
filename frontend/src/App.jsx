@@ -27,6 +27,7 @@ import EditCaregiver from "./pages/provider/EditCaregiver";
 import Bookings from "./pages/provider/Bookings";
 import Profile from "./pages/provider/Profile";
 
+import EditProviderProfile from "../pages/provider/EditProviderProfile";
 import ProviderBookingDetails from "./pages/provider/BookingDetails";
 import ProviderCaregiverDetails from "./pages/provider/CaregiverDetails";
 import CreateCenter from "./pages/provider/CreateCenter";
@@ -218,6 +219,8 @@ function App() {
         <Route path="center/:id" element={<ProviderCenterDetails />} />
 
         <Route path="edit-center/:id" element={<EditCenter />} />
+
+        <Route path="edit-profile" element={<EditProviderProfile />} />
 
         <Route path="caregivers" element={<Caregivers />} />
 

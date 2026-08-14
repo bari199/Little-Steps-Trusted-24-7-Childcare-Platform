@@ -6,6 +6,12 @@ export const getProviderProfile = async () => {
   return response.data;
 };
 
+/* Update logged-in provider profile */
+export const updateProviderProfile = async (data) => {
+  const response = await api.put("/providers/profile", data);
+  return response.data;
+};
+
 // Provider Bookings
 export const getProviderBookings = async () => {
   const response = await api.get("/bookings/provider");
