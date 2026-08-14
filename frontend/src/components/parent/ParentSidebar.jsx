@@ -55,7 +55,7 @@ const menus = [
   },
   {
     name: "Browse centers",
-    path: "/centers",
+    path: "/parent/centers",
     icon: Building2,
   },
   {
@@ -64,19 +64,9 @@ const menus = [
     icon: CreditCard,
   },
   {
-    name: "Favorites",
-    path: "/parent/favorites",
-    icon: Heart,
-  },
-  {
     name: "Profile",
     path: "/parent/profile",
     icon: User,
-  },
-  {
-    name: "Settings",
-    path: "/parent/settings",
-    icon: Settings,
   },
 ];
 
