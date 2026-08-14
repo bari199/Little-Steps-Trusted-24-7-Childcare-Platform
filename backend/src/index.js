@@ -1,15 +1,28 @@
 import dotenv from "dotenv";
 
-const result = dotenv.config();
+dotenv.config();
 
-console.log(result);
 import app from "./app.js";
 import connectDB from "./config/db.js";
 
-const PORT = process.env.PORT || 8000;
+let dbConnected = false;
 
-connectDB();
-console.log("BACKEND FILE PATH:", import.meta.url);
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const handler = async (req, res) => {
+  try {
+    if (!dbConnected) {
+      await connectDB();
+      dbConnected = true;
+    }
+
+    return app(req, res);
+  } catch (error) {
+    console.error("Vercel Backend Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export default handler;
