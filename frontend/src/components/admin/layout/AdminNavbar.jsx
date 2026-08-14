@@ -1,9 +1,9 @@
-import { Bell } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 
 import UserMenu from "../../common/UserMenu";
 import { useTheme } from "../../../context/ThemeContext";
 
-const AdminNavbar = () => {
+const AdminNavbar = ({ onSidebarOpen }) => {
   const { colors } = useTheme();
 
   return (
@@ -14,11 +14,11 @@ const AdminNavbar = () => {
         borderColor: colors.border,
       }}
     >
-      <div className="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="flex min-h-20 items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         {/* Left Side */}
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1
-            className="text-xl font-bold tracking-tight sm:text-2xl"
+            className="truncate text-xl font-bold tracking-tight sm:text-2xl"
             style={{
               color: colors.text,
               fontFamily: "Fraunces, serif",
@@ -38,22 +38,33 @@ const AdminNavbar = () => {
         </div>
 
         {/* Right Side */}
-        <div className="flex items-center gap-3 sm:gap-5">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-5">
           {/* Notification */}
           <button
             type="button"
             aria-label="Notifications"
-            className="relative flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-200 hover:-translate-y-0.5"
+            className="
+              relative
+              flex
+              h-10
+              w-10
+              items-center
+              justify-center
+              rounded-xl
+              border
+              transition-all
+              duration-200
+              hover:-translate-y-0.5
+            "
             style={{
               backgroundColor: colors.surface,
               borderColor: colors.border,
               color: colors.text,
-              boxShadow: `0 4px 12px rgba(36, 28, 15, 0.06)`,
+              boxShadow: "0 4px 12px rgba(36, 28, 15, 0.06)",
             }}
           >
             <Bell className="h-5 w-5" />
 
-            {/* Notification Dot */}
             <span
               className="absolute right-2 top-2 h-2 w-2 rounded-full"
               style={{
@@ -72,6 +83,34 @@ const AdminNavbar = () => {
 
           {/* User Menu */}
           <UserMenu />
+
+          {/* Mobile Sidebar Button */}
+          <button
+            type="button"
+            onClick={onSidebarOpen}
+            aria-label="Open admin sidebar"
+            className="
+              flex
+              h-10
+              w-10
+              shrink-0
+              items-center
+              justify-center
+              rounded-xl
+              border
+              transition-all
+              duration-200
+              hover:-translate-y-0.5
+              md:hidden
+            "
+            style={{
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              color: colors.text,
+            }}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
         </div>
       </div>
     </header>
