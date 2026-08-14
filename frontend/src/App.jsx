@@ -27,7 +27,7 @@ import EditCaregiver from "./pages/provider/EditCaregiver";
 import Bookings from "./pages/provider/Bookings";
 import Profile from "./pages/provider/Profile";
 
-import EditProviderProfile from "../pages/provider/EditProviderProfile";
+import EditProviderProfile from "./pages/provider/EditProviderProfile";
 import ProviderBookingDetails from "./pages/provider/BookingDetails";
 import ProviderCaregiverDetails from "./pages/provider/CaregiverDetails";
 import CreateCenter from "./pages/provider/CreateCenter";
