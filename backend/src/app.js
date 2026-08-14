@@ -19,9 +19,28 @@ console.log("Routes Loaded Successfully");
 // ==============================
 // CORS
 // ==============================
+
+const allowedOrigins = [process.env.CLIENT_URL, process.env.ADMIN_URL].filter(
+  Boolean,
+);
+
+console.log("Allowed CORS Origins:", allowedOrigins);
+
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL, process.env.ADMIN_URL],
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.log("CORS blocked:", origin);
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   }),
 );
@@ -29,6 +48,7 @@ app.use(
 // ==============================
 // Body Parser
 // ==============================
+
 app.use(express.json());
 
 app.use(
@@ -42,6 +62,7 @@ app.use(cookieParser());
 // ==============================
 // Request Logger
 // ==============================
+
 app.use((req, res, next) => {
   console.log(`\n${req.method} ${req.originalUrl}`);
   next();
@@ -50,6 +71,7 @@ app.use((req, res, next) => {
 // ==============================
 // API Routes
 // ==============================
+
 app.use("/api/auth", authRoutes);
 
 app.use("/api/providers", providerRoutes);
@@ -69,6 +91,7 @@ app.use("/api/admin", adminRoutes);
 // ==============================
 // Health Check
 // ==============================
+
 app.get("/", (req, res) => {
   res.status(200).json({
     success: true,
@@ -79,6 +102,7 @@ app.get("/", (req, res) => {
 // ==============================
 // 404 Handler
 // ==============================
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -89,6 +113,7 @@ app.use((req, res) => {
 // ==============================
 // Global Error Handler
 // ==============================
+
 app.use((err, req, res, next) => {
   console.error("\n========== GLOBAL ERROR ==========");
   console.error("Name:", err.name);
