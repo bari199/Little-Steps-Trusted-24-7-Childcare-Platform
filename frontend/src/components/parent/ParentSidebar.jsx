@@ -5,9 +5,7 @@ import {
   CalendarCheck,
   Building2,
   CreditCard,
-  Heart,
   User,
-  Settings,
   LogOut,
   X,
 } from "lucide-react";
@@ -50,7 +48,7 @@ const menus = [
   },
   {
     name: "My bookings",
-    path: "/parent/bookings",
+    path: "/parent/my-bookings",
     icon: CalendarCheck,
   },
   {
