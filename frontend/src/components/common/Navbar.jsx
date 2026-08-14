@@ -9,7 +9,7 @@ import { useTheme } from "../../context/ThemeContext";
 import LogoMark from "./LogoMark";
 import Button from "./Button";
 
-export default function Navbar() {
+export default function Navbar({ onSidebarOpen }) {
   const { colors, dark: isDark, toggle } = useTheme();
   const [open, setOpen] = useState(false);
 
@@ -85,7 +85,13 @@ export default function Navbar() {
           <button
             className="md:hidden w-9 h-9 flex items-center justify-center"
             style={{ color: colors.text }}
-            onClick={() => setOpen(!open)}
+            onClick={() => {
+              if (onSidebarOpen) {
+                onSidebarOpen();
+              } else {
+                setOpen(!open);
+              }
+            }}
             aria-label="Toggle menu"
           >
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

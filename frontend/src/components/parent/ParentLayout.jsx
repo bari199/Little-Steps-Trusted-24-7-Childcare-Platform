@@ -1,19 +1,44 @@
+import { useState } from "react";
 import { Outlet } from "react-router-dom";
+
 import Navbar from "../common/Navbar";
 import ParentSidebar from "./ParentSidebar";
+
 import { useTheme } from "../../context/ThemeContext";
-import { brand } from "../../components/data/theme";
 
 const ParentLayout = () => {
   const { colors } = useTheme();
+
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: colors.bg }}>
-      <ParentSidebar />
+    <div
+      className="min-h-screen w-full md:flex"
+      style={{ backgroundColor: colors.bg }}
+    >
+      {/* Parent Sidebar */}
+      <ParentSidebar
+        mobileOpen={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
+      />
 
-      <div className="flex flex-1 flex-col">
-        <Navbar />
+      {/* Main Area */}
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <Navbar onSidebarOpen={() => setMobileSidebarOpen(true)} />
 
-        <main className="flex-1 p-6" style={{ backgroundColor: colors.bg }}>
+        <main
+          className="
+            min-w-0
+            flex-1
+            px-4
+            py-4
+            sm:px-5
+            sm:py-5
+            md:px-6
+            md:py-6
+          "
+          style={{ backgroundColor: colors.bg }}
+        >
           <Outlet />
         </main>
       </div>
