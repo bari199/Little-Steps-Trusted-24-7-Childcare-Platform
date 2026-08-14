@@ -1,14 +1,18 @@
 import { Routes, Route } from "react-router-dom";
+
 import Centers from "./pages/parent/Centers";
 import Home from "./pages/Home";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import NotFound from "./pages/NotFound";
+
 import ParentDashboard from "./pages/parent/ParentDashboard";
 import ParentProfile from "./pages/parent/ParentProfile";
 import EditProfile from "./pages/parent/EditProfile";
+
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import GuestRoute from "./components/auth/GuestRoute";
+
 import CenterDetails from "./pages/parent/CenterDetails";
 import BookingForm from "./pages/parent/BookingForm";
 import MyBookings from "./pages/parent/MyBookings";
@@ -17,6 +21,8 @@ import BookingDetails from "./pages/parent/BookingDetails";
 import CaregiverDetails from "./pages/parent/CaregiverDetails";
 import ParentCaregivers from "./pages/parent/Caregivers";
 import ParentLayout from "./components/parent/ParentLayout";
+
+// ================= Provider =================
 
 import Dashboard from "./pages/provider/Dashboard";
 import DashboardHome from "./pages/provider/DashboardHome";
@@ -34,7 +40,8 @@ import CreateCenter from "./pages/provider/CreateCenter";
 import ProviderCenterDetails from "./pages/provider/CenterDetails";
 import EditCenter from "./pages/provider/EditCenter";
 
-// Admin Dashboard Pages
+// ================= Admin =================
+
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import AdmnDashboardHome from "./pages/admin/DashboardHome";
@@ -44,6 +51,8 @@ import AdminBookings from "./pages/admin/Bookings";
 import AdminSubscriptions from "./pages/admin/Subscriptions";
 import AdminPayments from "./pages/admin/Payments";
 import AdminReports from "./pages/admin/Reports";
+
+import AdminLayout from "./components/admin/layout/AdminLayout";
 
 function App() {
   return (
@@ -69,6 +78,8 @@ function App() {
           </GuestRoute>
         }
       />
+
+      {/* ================= Parent ================= */}
 
       <Route
         path="/parent"
@@ -101,102 +112,6 @@ function App() {
         <Route path="payments" element={<Payments />} />
       </Route>
 
-      {/* <Route
-        path="/parent/centers"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <Centers />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/parent/centers/:slug"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <CenterDetails />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/parent/book/:slug"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <BookingForm />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/parent/my-bookings"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <MyBookings />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/parent/bookings/:id"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <BookingDetails />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/parent/caregivers"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <ParentCaregivers />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/parent/caregivers/:id"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <CaregiverDetails />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/parent/payments"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <Payments />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/parent/profile/edit"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <EditProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/parent/dashboard"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <ParentDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/parent/profile"
-        element={
-          <ProtectedRoute roles={["parent"]}>
-            <ParentProfile />
-          </ProtectedRoute>
-        }
-      />
-       */}
-
       {/* ================= Provider ================= */}
 
       <Route
@@ -208,9 +123,10 @@ function App() {
         }
       >
         <Route index element={<DashboardHome />} />
-        <Route path="bookings/:id" element={<ProviderBookingDetails />} />
 
         <Route path="dashboard" element={<DashboardHome />} />
+
+        <Route path="bookings/:id" element={<ProviderBookingDetails />} />
 
         <Route path="center" element={<MyCenter />} />
 
@@ -241,29 +157,14 @@ function App() {
         path="/admin"
         element={
           <ProtectedRoute roles={["admin"]}>
-            <AdminDashboard />
+            <AdminLayout />
           </ProtectedRoute>
         }
       >
         <Route path="dashboard" element={<AdmnDashboardHome />} />
 
-        <Route
-          path="/admin/users"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <AdminUsers />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="users" element={<AdminUsers />} />
 
-        <Route
-          path="/admin/providers"
-          element={
-            <ProtectedRoute roles={["admin"]}>
-              <AdminProviders />
-            </ProtectedRoute>
-          }
-        />
         <Route path="providers" element={<AdminProviders />} />
 
         <Route path="centers" element={<AdminCenters />} />
