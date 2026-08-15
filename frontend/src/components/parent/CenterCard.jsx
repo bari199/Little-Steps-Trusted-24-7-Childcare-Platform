@@ -56,10 +56,16 @@ const CenterCard = ({ center }) => {
                 : `${center.openingTime} - ${center.closingTime}`}
             </p>
           </div>
+          <p className="text-sm text-[#6B5D45] dark:text-[#C9B896]">
+            <span className="font-medium text-[#241C0F] dark:text-[#FFF6E2]">
+              Provider:
+            </span>{" "}
+            {center.provider?.user?.name || "Provider not available"}
+          </p>
 
           <p className="flex items-center gap-1 text-sm font-medium text-[#241C0F] dark:text-[#FFF6E2]">
             <Star className="h-4 w-4 fill-[#FF9500] text-[#FF9500]" />{" "}
-            {center.rating}
+            {center.rating || "5"}
           </p>
 
           <Button
