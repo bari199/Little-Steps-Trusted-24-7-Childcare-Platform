@@ -185,41 +185,55 @@ const getDashboardStats = async (req, res) => {
       });
     }
 
-    const center = await Center.findOne({
+    // Get all centers belonging to this provider
+    const centers = await Center.find({
       provider: provider._id,
-    });
+    }).select("_id");
 
-    if (!center) {
-      return res.status(404).json({
-        success: false,
-        message: "Center not found",
+    if (!centers.length) {
+      return res.status(200).json({
+        success: true,
+        stats: {
+          totalCenters: 0,
+          totalBookings: 0,
+          pendingBookings: 0,
+          approvedBookings: 0,
+          rejectedBookings: 0,
+          completedBookings: 0,
+          totalRevenue: 0,
+          monthlyRevenue: 0,
+          totalCaregivers: 0,
+        },
       });
     }
 
+    const centerIds = centers.map((center) => center._id);
+
+    // Get all bookings from provider's centers
     const bookings = await Booking.find({
-      center: center._id,
+      center: { $in: centerIds },
     });
 
     const totalBookings = bookings.length;
 
     const pendingBookings = bookings.filter(
-      (b) => b.status === "Pending",
+      (booking) => booking.status === "Pending",
     ).length;
 
     const approvedBookings = bookings.filter(
-      (b) => b.status === "Approved",
+      (booking) => booking.status === "Approved",
     ).length;
 
     const rejectedBookings = bookings.filter(
-      (b) => b.status === "Rejected",
+      (booking) => booking.status === "Rejected",
     ).length;
 
     const completedBookings = bookings.filter(
-      (b) => b.status === "Completed",
+      (booking) => booking.status === "Completed",
     ).length;
 
     const totalRevenue = bookings
-      .filter((b) => b.paymentStatus === "Paid")
+      .filter((booking) => booking.paymentStatus === "Paid")
       .reduce((sum, booking) => sum + booking.amount, 0);
 
     const currentMonth = new Date().getMonth();
@@ -237,10 +251,15 @@ const getDashboardStats = async (req, res) => {
       })
       .reduce((sum, booking) => sum + booking.amount, 0);
 
-    res.status(200).json({
+    // Get total caregivers from all provider centers
+    const totalCaregivers = await Caregiver.countDocuments({
+      center: { $in: centerIds },
+    });
+
+    return res.status(200).json({
       success: true,
       stats: {
-        totalCenters: 1,
+        totalCenters: centers.length,
         totalBookings,
         pendingBookings,
         approvedBookings,
@@ -248,10 +267,13 @@ const getDashboardStats = async (req, res) => {
         completedBookings,
         totalRevenue,
         monthlyRevenue,
+        totalCaregivers,
       },
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("GET DASHBOARD STATS ERROR:", error);
+
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
