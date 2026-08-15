@@ -106,6 +106,24 @@ const CreateCaregiver = () => {
 
   return (
     <div className="space-y-8">
+      {/*
+        Fallback keyframe for the submit spinner below.
+        This guarantees the spin animation works even if Tailwind's
+        `animate-spin` utility isn't generated for this file (e.g. missing
+        from tailwind.config.js `content` paths, or overridden by a global
+        reset). The class name `cg-spin` is scoped/unique to avoid clashing
+        with anything else in the app.
+      */}
+      <style>{`
+        @keyframes cg-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .cg-spin {
+          animation: cg-spin 0.6s linear infinite;
+        }
+      `}</style>
+
       <Reveal>
         <div
           className="rounded-[30px] border p-8 lg:p-10"
@@ -349,7 +367,7 @@ const CreateCaregiver = () => {
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span className="cg-spin h-4 w-4 rounded-full border-2 border-white/30 border-t-white" />
                   Creating Caregiver...
                 </span>
               ) : (
