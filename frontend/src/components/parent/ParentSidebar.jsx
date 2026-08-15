@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
+  HomeIcon,
   CalendarCheck,
   Building2,
   CreditCard,
@@ -41,6 +42,11 @@ const LogoMark = () => (
 );
 
 const menus = [
+  {
+    name: "Home",
+    path: "/",
+    icon: HomeIcon,
+  },
   {
     name: "Dashboard",
     path: "/parent/dashboard",
