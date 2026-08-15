@@ -244,6 +244,7 @@ const CreateCaregiver = () => {
                 />
               </div>
             </div>
+
             {/* Availability */}
 
             <div className="space-y-2">
@@ -341,8 +342,19 @@ const CreateCaregiver = () => {
           {/* Submit */}
 
           <div className="mt-10 flex justify-end">
-            <Button type="submit" disabled={isSubmitting} icon={UserPlus}>
-              {isSubmitting ? "Creating Caregiver..." : "Create Caregiver"}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              icon={isSubmitting ? undefined : UserPlus}
+            >
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Creating Caregiver...
+                </span>
+              ) : (
+                "Create Caregiver"
+              )}
             </Button>
           </div>
         </form>
